@@ -21,3 +21,5 @@
 - Gate file downloads with the storage SELECT policy (participants, plus verified makers on verified-only jobs); the UI only mirrors it.
 - Sign-in return paths use a validated `redirect` search param (starts with "/", not "//").
 - Feedback and job reports are insert-only for users and readable only by database-validated admins.
+- Hiring charges the maker's fee in a server function before calling the service-only award_job RPC; bids are inserted server-side only after a saved card is verified, so the fee can't be skipped.
+- The landing page (/) is a marketing page with a recent-jobs preview; the full filter bar lives only on /browse.

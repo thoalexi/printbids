@@ -6,6 +6,11 @@ import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { printMaterials, launchAreas } from '@/lib/printbids';
 import { useAuth } from '@/lib/auth';
+import { useEffect } from 'react';
+import { useServerFn } from '@tanstack/react-start';
+import { startVerificationFee, confirmVerificationFee } from '@/lib/payments.functions';
+import { getStripeEnvironment } from '@/lib/stripe';
+import { EmbeddedPayment } from './embedded-checkout';
 
 export function AdminNav() {
   const cls = 'px-3 py-2 rounded-md text-sm text-muted-foreground';
@@ -16,18 +21,22 @@ export function AdminNav() {
   </nav>;
 }
 
-export function Verification() {
+export function Verification({ sessionId }: { sessionId?: string | undefined }) {
   const { user, ready } = useAuth();
+  const startFee = useServerFn(startVerificationFee);
+  const confirmFee = useServerFn(confirmVerificationFee);
+  const [paying, setPaying] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [files, setFiles] = useState<File[]>([]);
   const { data: application, refetch } = useQuery({ queryKey: ['verification', user?.id], enabled: !!user, queryFn: async () => { const r = await supabase.from('verifications').select('*').eq('user_id', user?.id ?? '').maybeSingle(); if (r.error) throw r.error; return r.data; } });
+  useEffect(() => { if (!user || !sessionId) return; void confirmFee({ data: { sessionId, environment: getStripeEnvironment() } }).then(() => refetch()); }, [user, sessionId, confirmFee, refetch]);
   return <main className="max-w-3xl mx-auto px-6 py-12">
     <BadgeCheck className="size-10 text-primary mb-5" />
     <h1 className="text-3xl font-semibold">Become a Verified Maker</h1>
     <p className="text-sm text-muted-foreground mt-4 mb-7 leading-7">For makers serving Atlanta and the surrounding communities.<br />Show customers they're in good hands. The application fee is $5.</p>
     <div className="flex flex-wrap gap-6 text-xs text-muted-foreground mb-10"><span className="flex items-center gap-2"><Printer className="size-4 text-primary" />Printer review</span><span className="flex items-center gap-2"><ShieldCheck className="size-4 text-primary" />Portfolio check</span><span className="flex items-center gap-2"><BadgeCheck className="size-4 text-primary" />Badge on your bids</span></div>
-    {!ready ? <p>Loading…</p> : !user ? <Button asChild><Link to="/auth" search={{ redirect: '/verify' }}>Sign in to apply <ArrowRight /></Link></Button> : application ? <div className="border border-border bg-card rounded-md p-6"><h2 className="font-semibold capitalize text-primary">Application {application.status}</h2><p className="mt-3 text-sm text-muted-foreground">{application.status === 'pending' ? 'Your application is awaiting admin review.' : application.status === 'approved' ? 'You’re a Verified Maker. Your badge now appears on your bids.' : application.review_notes || 'Your application was not approved.'}</p>{application.shop_name && <p className="mt-5 text-sm font-medium">{application.shop_name}</p>}<p className="mt-2 text-sm whitespace-pre-wrap">{application.printer_specs}</p></div> :
+    {!ready ? <p>Loading…</p> : !user ? <Button asChild><Link to="/auth" search={{ redirect: '/verify' }}>Sign in to apply <ArrowRight /></Link></Button> : application && !application.fee_paid ? <div className="space-y-4"><h2 className="font-semibold">Last step: $5 application fee</h2><p className="text-sm text-muted-foreground">Your details are saved. Pay the fee to send your application for review.</p>{paying ? <EmbeddedPayment fetchClientSecret={async () => { const r = await startFee({ data: { environment: getStripeEnvironment(), returnUrl: `${window.location.origin}/verify?session_id={CHECKOUT_SESSION_ID}` } }); if ('error' in r) throw new Error(r.error); return r.clientSecret; }} /> : <Button onClick={() => setPaying(true)}>Pay $5 and submit<ArrowRight /></Button>}</div> : application ? <div className="border border-border bg-card rounded-md p-6"><h2 className="font-semibold capitalize text-primary">Application {application.status}</h2><p className="mt-3 text-sm text-muted-foreground">{application.status === 'pending' ? 'Your application is awaiting admin review.' : application.status === 'approved' ? 'You’re a Verified Maker. Your badge now appears on your bids.' : application.review_notes || 'Your application was not approved.'}</p>{application.shop_name && <p className="mt-5 text-sm font-medium">{application.shop_name}</p>}<p className="mt-2 text-sm whitespace-pre-wrap">{application.printer_specs}</p></div> :
       <form className="space-y-6" onSubmit={async e => {
         e.preventDefault(); setBusy(true); setError('');
         const f = new FormData(e.currentTarget);
@@ -53,14 +62,14 @@ export function Verification() {
         {files.length > 0 && <p className="text-xs text-muted-foreground -mt-4">{files.length} photo{files.length === 1 ? '' : 's'} selected</p>}
         <label>Shop and review links · one per line<textarea className="field min-h-28" name="links" maxLength={3000} placeholder={'https://your-store.etsy.com\nhttps://g.page/your-business'} /></label>
         {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
-        <Button className="h-11" disabled={busy}>{busy ? 'Submitting…' : 'Submit application'}<ArrowRight /></Button>
+        <Button className="h-11" disabled={busy}>{busy ? 'Submitting…' : 'Continue to payment'}<ArrowRight /></Button>
       </form>}
   </main>;
 }
 
 export function AdminVerifications() {
   const [notice, setNotice] = useState('');
-  const { data, error, refetch } = useQuery({ queryKey: ['admin-verifications'], queryFn: async () => { const a = await supabase.rpc('is_admin'); if (!a.data) throw new Error('Admin access required'); const r = await supabase.from('verifications').select('*').order('created_at', { ascending: false }); if (r.error) throw r.error; return r.data; } });
+  const { data, error, refetch } = useQuery({ queryKey: ['admin-verifications'], queryFn: async () => { const a = await supabase.rpc('is_admin'); if (!a.data) throw new Error('Admin access required'); const r = await supabase.from('verifications').select('*').eq('fee_paid', true).order('created_at', { ascending: false }); if (r.error) throw r.error; return r.data; } });
   return <main className="max-w-5xl mx-auto px-6 py-12"><h1 className="text-3xl mb-5 font-semibold">Admin</h1><AdminNav />
     {notice && <p role="status" className="text-sm text-primary mb-4">{notice}</p>}
     {error ? <p role="alert" className="text-muted-foreground">Admin access is required.</p> : !data ? <p>Loading…</p> : data.length === 0 ? <p className="text-muted-foreground">No maker applications to review.</p> : <div className="space-y-5">{data.map(a => <article key={a.id} className="border border-border bg-card rounded-md p-6"><div className="flex justify-between gap-3"><h2 className="font-semibold">{a.shop_name || 'Maker application'}</h2><span className="text-xs text-primary capitalize">{a.status}</span></div><p className="text-xs text-muted-foreground mt-1">{a.service_area} · {a.fee_paid ? 'Fee paid' : 'Fee not paid'}</p><p className="whitespace-pre-wrap text-sm mt-4">{a.printer_specs}</p><p className="text-muted-foreground text-xs mt-3">{a.materials.join(' · ')}</p><div className="flex flex-col gap-1 mt-4">{a.links.map(l => <a key={l} href={l} target="_blank" rel="noreferrer noopener" className="text-primary text-xs break-all">{l}</a>)}</div><div className="flex flex-wrap gap-3 mt-4">{a.photos.map((path, i) => <Button key={path} size="sm" variant="outline" onClick={async () => { const r = await supabase.storage.from('print-files').createSignedUrl(path, 60); if (r.data) window.open(r.data.signedUrl, '_blank', 'noopener,noreferrer'); }}>Photo {i + 1}</Button>)}</div>{a.status === 'pending' && <form className="mt-5 space-y-4" onSubmit={async e => { e.preventDefault(); const f = new FormData(e.currentTarget); const submitter = (e.nativeEvent as SubmitEvent).submitter as HTMLButtonElement | null; const r = await supabase.from('verifications').update({ status: submitter?.value === 'approved' ? 'approved' : 'rejected', review_notes: String(f.get('notes')) }).eq('id', a.id); setNotice(r.error ? r.error.message : 'Review saved.'); await refetch(); }}><label>Review notes<textarea className="field" name="notes" maxLength={2000} /></label><div className="flex flex-wrap gap-3"><Button name="decision" value="approved"><BadgeCheck />Approve maker</Button><Button variant="outline" name="decision" value="rejected">Reject</Button></div></form>}</article>)}</div>}

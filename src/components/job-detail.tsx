@@ -9,6 +9,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { JobImage } from './browse-jobs';
 import { money, firstName, bidTechnologies, type Job } from '@/lib/printbids';
 import { generateQuestions } from '@/lib/jobs.functions';
+import { placeBid, startBidCard, hireBid } from '@/lib/payments.functions';
+import { getStripeEnvironment } from '@/lib/stripe';
+import { EmbeddedPayment } from './embedded-checkout';
 
 const errText = (e: unknown) => (e instanceof Error ? e.message : typeof e === 'object' && e && 'message' in e ? String((e as { message: unknown }).message) : 'Something went wrong. Please try again.');
 const fileLabel = (path: string) => path.split('/').pop()?.replace(/^[a-f0-9-]{36}-/, '') ?? 'File';
@@ -32,11 +35,12 @@ export function JobSpecs({ job }: { job: Pick<Job, 'quantity' | 'deadline' | 'de
   return <dl className="text-sm space-y-4 mt-5">{([['Category', job.category], ['Quantity', `${job.quantity} ${job.quantity === 1 ? 'piece' : 'pieces'}`], ['Size', job.dimensions || 'Not given'], ['3D file', job.file_status], ["What it's for", job.purpose], ['Material', job.material], ['Technology', job.technology], ['Finish', job.finish], ['Color', job.color], ['Delivery', job.delivery], ['Location', job.region], ['Needed by', job.deadline], ['Budget', job.budget ? money(job.budget) : 'Open to bids']] as const).map(([k, v]) => <Spec key={k} k={k} v={v} />)}</dl>;
 }
 
-export function JobDetail({ id, userId }: { id: string; userId: string }) {
+export function JobDetail({ id, userId, cardSession }: { id: string; userId: string; cardSession?: string | undefined }) {
   const { data, error, refetch } = useQuery(detailQuery(id, userId));
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<{ kind: 'ok' | 'error'; text: string; where: string } | null>(null);
   const generate = useServerFn(generateQuestions);
+  const hire = useServerFn(hireBid);
   if (error) return <main className="max-w-4xl mx-auto px-6 py-14"><h1 className="text-2xl">Job unavailable</h1><p className="text-muted-foreground mt-3">This job is private, awarded to another maker, or no longer available.</p><Button asChild className="mt-6"><Link to="/">Browse jobs</Link></Button></main>;
   if (!data) return <main className="p-16 text-center text-muted-foreground">Loading print job…</main>;
   const { job, detail, bids, verified, verifiedCustomer, myVerification } = data;
@@ -48,7 +52,7 @@ export function JobDetail({ id, userId }: { id: string; userId: string }) {
   const run = async (where: string, fn: () => Promise<void>, ok?: string) => { setBusy(true); setNotice(null); try { await fn(); await refetch(); if (ok) setNotice({ kind: 'ok', text: ok, where }); } catch (e) { setNotice({ kind: 'error', text: errText(e), where }); } finally { setBusy(false); } };
 
   return <main className="max-w-6xl mx-auto px-6 py-10">
-    <Link to="/" className="text-muted-foreground text-xs flex gap-2 items-center mb-7"><ArrowLeft className="size-3" />Back to print jobs</Link>
+    <Link to="/browse" className="text-muted-foreground text-xs flex gap-2 items-center mb-7"><ArrowLeft className="size-3" />Back to print jobs</Link>
     <div className="grid lg:grid-cols-[1fr_340px] gap-9">
       <div className="min-w-0">
         <div className="flex flex-wrap gap-2 mb-4 text-xs text-primary"><span>{job.category}</span>·<span>{job.material}</span>·<span className="capitalize">{job.status === 'awarded' ? 'Hired' : job.status}</span>{job.verified_only && <span className="text-success">· Verified Makers only</span>}</div>
@@ -88,7 +92,7 @@ export function JobDetail({ id, userId }: { id: string; userId: string }) {
         {owner && job.bid_count > 0 && job.status === 'open' && <p className="text-xs text-muted-foreground mt-4">Editing is locked because bidding has started.</p>}
         {!owner && !ownBid && job.status === 'open' && job.bid_count < 5 && (job.verified_only && !iAmVerified
           ? <div className="mt-6 border border-border rounded-md p-5 text-sm"><p>This job is open to Verified Makers only.</p><Button asChild variant="outline" size="sm" className="mt-4"><Link to="/verify">Become a Verified Maker</Link></Button></div>
-          : <BidForm jobId={id} userId={userId} questions={detail.questions} verification={iAmVerified ? myVerification : null} onDone={() => void refetch()} />)}
+          : <BidForm jobId={id} userId={userId} cardSession={cardSession} questions={detail.questions} verification={iAmVerified ? myVerification : null} onDone={() => void refetch()} />)}
         {!owner && job.status === 'open' && <ReportJob jobId={id} userId={userId} />}
       </aside>
     </div>
@@ -97,7 +101,7 @@ export function JobDetail({ id, userId }: { id: string; userId: string }) {
       <h2 className="text-xl font-semibold mb-5">{owner ? 'Maker bids' : 'Your sealed bid'}</h2>
       {owner && !bids.length && <p className="text-sm text-muted-foreground">No bids yet. Your job is ready for makers.</p>}
       {show('hire')}
-      <div className="grid md:grid-cols-2 gap-5 mt-3">{bids.filter(b => owner || b.maker_id === userId).map(b => <BidCard key={b.id} bid={b} questions={detail.questions} verified={verified.has(b.maker_id)} canHire={owner && job.status === 'open'} busy={busy} onHire={() => void run('hire', async () => { const r = await supabase.rpc('hire_bid', { bid_id: b.id }); if (r.error) throw new Error("We couldn't complete the hire. Please try again."); })} />)}</div>
+      <div className="grid md:grid-cols-2 gap-5 mt-3">{bids.filter(b => owner || b.maker_id === userId).map(b => <BidCard key={b.id} bid={b} questions={detail.questions} verified={verified.has(b.maker_id)} canHire={owner && job.status === 'open'} busy={busy} onHire={() => void run('hire', async () => { const r = await hire({ data: { bidId: b.id, environment: getStripeEnvironment() } }); if ('error' in r) throw new Error("We couldn't complete the hire. Please try again."); })} />)}</div>
     </section>}
   </main>;
 }
@@ -119,7 +123,10 @@ function BidCard({ bid: b, questions, verified, canHire, busy, onHire }: { bid: 
 
 type Verification = { materials: string[]; links: string[]; photos: string[] } | null;
 const draftKey = (jobId: string) => `printbids-bid-${jobId}`;
-function BidForm({ jobId, userId, questions, verification, onDone }: { jobId: string; userId: string; questions: string[]; verification: Verification; onDone: () => void }) {
+function BidForm({ jobId, userId, questions, verification, onDone, cardSession }: { jobId: string; userId: string; questions: string[]; verification: Verification; onDone: () => void; cardSession?: string | undefined }) {
+  const place = useServerFn(placeBid);
+  const startCard = useServerFn(startBidCard);
+  const [checkout, setCheckout] = useState(false);
   const saved: Record<string, string> = (() => { try { return JSON.parse(sessionStorage.getItem(draftKey(jobId)) ?? '{}'); } catch { return {}; } })();
   const [itemized, setItemized] = useState(saved['mode'] !== 'total');
   const [amounts, setAmounts] = useState<Record<string, string>>(saved);
@@ -135,12 +142,15 @@ function BidForm({ jobId, userId, questions, verification, onDone }: { jobId: st
       const links = String(f.get('links') ?? '').split('\n').map(v => v.trim()).filter(Boolean);
       if (links.some(v => { try { return new URL(v).protocol !== 'https:'; } catch { return true; } })) throw new Error('Links must be full https:// addresses.');
       if (photos.length > 6) throw new Error('Add up to 6 photos.');
-      const paths: string[] = [];
-      for (const file of photos) { if (!file.type.startsWith('image/') || file.size > 10 * 1024 * 1024) throw new Error('Photos must be images under 10 MB.'); const path = `${userId}/bids/${crypto.randomUUID()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`; const up = await supabase.storage.from('print-files').upload(path, file); if (up.error) throw up.error; paths.push(path); }
+      const photoKey = `${draftKey(jobId)}-photos`;
+      let paths: string[] = JSON.parse(sessionStorage.getItem(photoKey) ?? '[]');
+      if (photos.length) { paths = []; for (const file of photos) { if (!file.type.startsWith('image/') || file.size > 10 * 1024 * 1024) throw new Error('Photos must be images under 10 MB.'); const path = `${userId}/bids/${crypto.randomUUID()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`; const up = await supabase.storage.from('print-files').upload(path, file); if (up.error) throw up.error; paths.push(path); } sessionStorage.setItem(photoKey, JSON.stringify(paths)); }
+      const environment = getStripeEnvironment();
+      if (!cardSession) { setCheckout(true); return; }
       const n = (k: string) => Number(f.get(k)) || 0;
-      const r = await supabase.from('bids').insert({ job_id: jobId, maker_id: userId, itemized, total: itemized ? 0 : n('total'), materials: itemized ? n('materials') : 0, printing: itemized ? n('printing') : 0, post_processing: itemized ? n('post_processing') : 0, design: itemized ? n('design') : 0, shipping: itemized ? n('shipping') : 0, lead_days: n('lead_days'), technology: String(f.get('technology')), material: String(f.get('material') ?? '').slice(0, 80), offers: String(f.get('offers')), links, photos: paths.length ? paths : (verification?.photos ?? []).slice(0, 6), notes: String(f.get('notes') ?? ''), answers: questions.map((_, i) => String(f.get(`q${i}`))) });
-      if (r.error) throw r.error;
-      sessionStorage.removeItem(draftKey(jobId));
+      const r = await place({ data: { jobId, sessionId: cardSession, environment, itemized, total: itemized ? 0 : n('total'), materials: itemized ? n('materials') : 0, printing: itemized ? n('printing') : 0, post_processing: itemized ? n('post_processing') : 0, design: itemized ? n('design') : 0, shipping: itemized ? n('shipping') : 0, lead_days: n('lead_days'), technology: String(f.get('technology')), material: String(f.get('material') ?? '').slice(0, 80), offers: String(f.get('offers')) as 'Pickup' | 'Delivery' | 'Pickup or delivery', links, photos: paths.length ? paths : (verification?.photos ?? []).slice(0, 6), notes: String(f.get('notes') ?? ''), answers: questions.map((_, i) => String(f.get(`q${i}`))) } });
+      if ('error' in r) throw new Error(r.error);
+      sessionStorage.removeItem(draftKey(jobId)); sessionStorage.removeItem(photoKey);
       onDone();
     } catch (err) { setError(errText(err)); } finally { setBusy(false); }
   }}>
@@ -159,7 +169,9 @@ function BidForm({ jobId, userId, questions, verification, onDone }: { jobId: st
     {questions.map((q, i) => <label key={q}>{q}<textarea className="field" name={`q${i}`} required maxLength={500} defaultValue={val(`q${i}`)} /></label>)}
     <label>Notes for the customer · optional<textarea className="field" name="notes" maxLength={3000} defaultValue={val('notes')} /></label>
     {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
-    <Button className="w-full" disabled={busy}>{busy ? 'Submitting…' : 'Submit sealed bid'}<Plus /></Button>
+    {cardSession && <p className="text-xs text-primary">Card saved. You won't be charged unless you're hired.</p>}
+    {checkout && !cardSession ? <div className="space-y-3"><p className="text-sm">Save a card to place your bid. You're only charged the 10% success fee if the customer hires you.</p><EmbeddedPayment fetchClientSecret={async () => { const r = await startCard({ data: { jobId, environment: getStripeEnvironment(), returnUrl: `${window.location.origin}/jobs/${jobId}?card_session={CHECKOUT_SESSION_ID}` } }); if ('error' in r) throw new Error(r.error); return r.clientSecret; }} /></div>
+      : <Button className="w-full" disabled={busy}>{busy ? 'Submitting…' : cardSession ? 'Submit sealed bid' : 'Continue to save card'}<Plus /></Button>}
   </form>;
 }
 
