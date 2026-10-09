@@ -18,38 +18,68 @@ export type Database = {
         Row: {
           answers: string[]
           created_at: string
+          design: number
           id: string
+          itemized: boolean
           job_id: string
           lead_days: number
+          links: string[]
           maker_id: string
+          maker_name: string
+          material: string
           materials: number
           notes: string
+          offers: string
+          photos: string[]
+          post_processing: number
           printing: number
           shipping: number
+          technology: string
+          total: number
         }
         Insert: {
           answers?: string[]
           created_at?: string
+          design?: number
           id?: string
+          itemized?: boolean
           job_id: string
           lead_days: number
+          links?: string[]
           maker_id: string
+          maker_name?: string
+          material?: string
           materials: number
           notes?: string
+          offers?: string
+          photos?: string[]
+          post_processing?: number
           printing: number
           shipping: number
+          technology?: string
+          total?: number
         }
         Update: {
           answers?: string[]
           created_at?: string
+          design?: number
           id?: string
+          itemized?: boolean
           job_id?: string
           lead_days?: number
+          links?: string[]
           maker_id?: string
+          maker_name?: string
+          material?: string
           materials?: number
           notes?: string
+          offers?: string
+          photos?: string[]
+          post_processing?: number
           printing?: number
           shipping?: number
+          technology?: string
+          total?: number
         }
         Relationships: [
           {
@@ -66,8 +96,10 @@ export type Database = {
           address: string
           email: string
           job_id: string
+          method: string
           notes: string
           phone: string
+          pickup_details: string
           side: string
           tracking: string
           user_id: string
@@ -76,8 +108,10 @@ export type Database = {
           address?: string
           email?: string
           job_id: string
+          method?: string
           notes?: string
           phone?: string
+          pickup_details?: string
           side: string
           tracking?: string
           user_id: string
@@ -86,8 +120,10 @@ export type Database = {
           address?: string
           email?: string
           job_id?: string
+          method?: string
           notes?: string
           phone?: string
+          pickup_details?: string
           side?: string
           tracking?: string
           user_id?: string
@@ -101,6 +137,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      feedback: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          message: string
+          page: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          email?: string
+          id?: string
+          message: string
+          page?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          message?: string
+          page?: string
+          user_id?: string | null
+        }
+        Relationships: []
       }
       job_details: {
         Row: {
@@ -143,60 +206,128 @@ export type Database = {
           },
         ]
       }
+      job_reports: {
+        Row: {
+          created_at: string
+          details: string
+          id: string
+          job_id: string
+          reason: string
+          reporter_id: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          details?: string
+          id?: string
+          job_id: string
+          reason: string
+          reporter_id: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          details?: string
+          id?: string
+          job_id?: string
+          reason?: string
+          reporter_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_reports_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       jobs: {
         Row: {
           awarded_maker: string | null
           bid_count: number
           budget: number | null
+          category: string
+          color: string
           created_at: string
           deadline: string
+          delivery: string
+          dimensions: string
+          file_status: string
+          finish: string
           fulfillment: string
           id: string
           image_key: number
           material: string
           owner_id: string
+          owner_name: string
+          purpose: string
           quantity: number
           region: string
+          rights_confirmed: boolean
           status: string
           summary: string
           technology: string
           title: string
+          verified_only: boolean
         }
         Insert: {
           awarded_maker?: string | null
           bid_count?: number
           budget?: number | null
+          category?: string
+          color?: string
           created_at?: string
           deadline: string
+          delivery?: string
+          dimensions?: string
+          file_status?: string
+          finish?: string
           fulfillment?: string
           id?: string
           image_key?: number
           material?: string
           owner_id: string
+          owner_name?: string
+          purpose?: string
           quantity: number
           region?: string
+          rights_confirmed?: boolean
           status?: string
           summary?: string
           technology?: string
           title: string
+          verified_only?: boolean
         }
         Update: {
           awarded_maker?: string | null
           bid_count?: number
           budget?: number | null
+          category?: string
+          color?: string
           created_at?: string
           deadline?: string
+          delivery?: string
+          dimensions?: string
+          file_status?: string
+          finish?: string
           fulfillment?: string
           id?: string
           image_key?: number
           material?: string
           owner_id?: string
+          owner_name?: string
+          purpose?: string
           quantity?: number
           region?: string
+          rights_confirmed?: boolean
           status?: string
           summary?: string
           technology?: string
           title?: string
+          verified_only?: boolean
         }
         Relationships: []
       }
@@ -248,6 +379,7 @@ export type Database = {
       verifications: {
         Row: {
           created_at: string
+          fee_paid: boolean
           id: string
           links: string[]
           materials: string[]
@@ -255,11 +387,13 @@ export type Database = {
           printer_specs: string
           review_notes: string
           service_area: string
+          shop_name: string
           status: string
           user_id: string
         }
         Insert: {
           created_at?: string
+          fee_paid?: boolean
           id?: string
           links?: string[]
           materials: string[]
@@ -267,11 +401,13 @@ export type Database = {
           printer_specs: string
           review_notes?: string
           service_area?: string
+          shop_name?: string
           status?: string
           user_id: string
         }
         Update: {
           created_at?: string
+          fee_paid?: boolean
           id?: string
           links?: string[]
           materials?: string[]
@@ -279,6 +415,7 @@ export type Database = {
           printer_specs?: string
           review_notes?: string
           service_area?: string
+          shop_name?: string
           status?: string
           user_id?: string
         }
@@ -292,6 +429,13 @@ export type Database = {
       hire_bid: { Args: { bid_id: string }; Returns: undefined }
       in_atlanta_area: { Args: { area: string }; Returns: boolean }
       is_admin: { Args: never; Returns: boolean }
+      remove_job: { Args: { target: string }; Returns: undefined }
+      verified_customers: {
+        Args: never
+        Returns: {
+          user_id: string
+        }[]
+      }
       verified_makers: {
         Args: never
         Returns: {
