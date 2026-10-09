@@ -8,5 +8,5 @@
 - [x] End-to-end posting, bidding, award and contact-card checks
 - [x] Polish the job-posting file picker so it reads as a clear, well-proportioned upload control
 - [x] Knowledge alignment: feedback, no toasts, sitemap, URL filters, posting fields, guest preview, bid form, contact card, reports, admin queues, Verified Customer
-- [ ] Payments: maker card hold on bid, 10% success fee on Hire, $5 verification fee (needs built-in Stripe enabled)
-- [ ] Landing page redesign: calmer hero, single image, trust line, How it works, recent jobs preview; filters move to /browse; header 'Get verified'
+- [x] Payments: maker card hold on bid, 10% success fee on Hire, $5 verification fee (needs built-in Stripe enabled)
+- [x] Landing page redesign: calmer hero, single image, trust line, How it works, recent jobs preview; filters move to /browse; header 'Get verified'
