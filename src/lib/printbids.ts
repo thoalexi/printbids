@@ -12,7 +12,8 @@ export const purposes = ['Display/decorative','Functional part','Prototype','Wea
 export const finishes = ['As printed','Supports removed and cleaned','Sanded','Primed','Painted'];
 export const deliveries = ['Local pickup','Maker delivers or ships','Either'];
 export const neededBy = ['Within a week','Within a month','Flexible'];
-export const meta = (title: string, description: string) => ({meta:[{title:`${title} — PrintBids`},{name:'description',content:description},{property:'og:title',content:`${title} — PrintBids`},{property:'og:description',content:description},{property:'og:type',content:'website'},{name:'twitter:card',content:'summary_large_image'}]});
+export const SITE_URL = 'https://printbids.lovable.app';
+export const meta = (title: string, description: string, path?: string) => ({links: path ? [{rel:'canonical',href:`${SITE_URL}${path}`}] : [], meta:[...(path ? [{property:'og:url',content:`${SITE_URL}${path}`}] : []),{title:`${title} — PrintBids`},{name:'description',content:description},{property:'og:title',content:`${title} — PrintBids`},{property:'og:description',content:description},{property:'og:type',content:'website'},{name:'twitter:card',content:'summary_large_image'}]});
 export const money = (amount: number) => new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:2}).format(amount);
 export function timeline(job: Pick<Job,'deadline'>) { const days = Math.ceil((Date.parse(job.deadline)-Date.now())/86400000); return days <= 7 ? 'Within a week' : days <= 30 ? 'Within a month' : 'Flexible'; }
 export const firstName = (name?: string | null) => (name ?? '').trim().split(/\s+/)[0] || 'Customer';
