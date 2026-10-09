@@ -184,7 +184,8 @@ function ContactCard({ job, userId }: { job: Job; userId: string }) {
   const other = cards?.find(c => c.side !== side);
   const client = cards?.find(c => c.side === 'client');
   const methods = job.delivery === 'Local pickup' ? ['Pickup'] : job.delivery === 'Maker delivers or ships' ? ['Delivery'] : ['Pickup', 'Delivery'];
-  const [method, setMethod] = useState(own?.method || methods[0]);
+  const [picked, setMethod] = useState<string | null>(null);
+  const method = picked ?? (own?.method || methods[0]);
   const [status, setStatus] = useState('');
   const mapsTarget = other?.side === 'client' ? other.address : other?.pickup_details;
   return <section className="border-t border-border mt-8 pt-7">

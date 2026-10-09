@@ -17,8 +17,8 @@ import { Route as VerifyRouteImport } from './routes/verify'
 import { Route as AuthenticatedMyBidsRouteImport } from './routes/_authenticated/my-bids'
 import { Route as AuthenticatedMyPostsRouteImport } from './routes/_authenticated/my-posts'
 import { Route as AuthenticatedPostRouteImport } from './routes/_authenticated/post'
+import { Route as JobsIdRouteImport } from './routes/jobs.$id'
 import { Route as AuthenticatedAdminVerificationsRouteImport } from './routes/_authenticated/admin/verifications'
-import { Route as AuthenticatedJobsIdRouteImport } from './routes/_authenticated/jobs.$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -59,17 +59,17 @@ const AuthenticatedPostRoute = AuthenticatedPostRouteImport.update({
   path: '/post',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const JobsIdRoute = JobsIdRouteImport.update({
+  id: '/jobs/$id',
+  path: '/jobs/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedAdminVerificationsRoute =
   AuthenticatedAdminVerificationsRouteImport.update({
     id: '/admin/verifications',
     path: '/admin/verifications',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const AuthenticatedJobsIdRoute = AuthenticatedJobsIdRouteImport.update({
-  id: '/jobs/$id',
-  path: '/jobs/$id',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -79,8 +79,8 @@ export interface FileRoutesByFullPath {
   '/my-bids': typeof AuthenticatedMyBidsRoute
   '/my-posts': typeof AuthenticatedMyPostsRoute
   '/post': typeof AuthenticatedPostRoute
+  '/jobs/$id': typeof JobsIdRoute
   '/admin/verifications': typeof AuthenticatedAdminVerificationsRoute
-  '/jobs/$id': typeof AuthenticatedJobsIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -90,8 +90,8 @@ export interface FileRoutesByTo {
   '/my-bids': typeof AuthenticatedMyBidsRoute
   '/my-posts': typeof AuthenticatedMyPostsRoute
   '/post': typeof AuthenticatedPostRoute
+  '/jobs/$id': typeof JobsIdRoute
   '/admin/verifications': typeof AuthenticatedAdminVerificationsRoute
-  '/jobs/$id': typeof AuthenticatedJobsIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -103,8 +103,8 @@ export interface FileRoutesById {
   '/_authenticated/my-bids': typeof AuthenticatedMyBidsRoute
   '/_authenticated/my-posts': typeof AuthenticatedMyPostsRoute
   '/_authenticated/post': typeof AuthenticatedPostRoute
+  '/jobs/$id': typeof JobsIdRoute
   '/_authenticated/admin/verifications': typeof AuthenticatedAdminVerificationsRoute
-  '/_authenticated/jobs/$id': typeof AuthenticatedJobsIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -116,8 +116,8 @@ export interface FileRouteTypes {
     | '/my-bids'
     | '/my-posts'
     | '/post'
-    | '/admin/verifications'
     | '/jobs/$id'
+    | '/admin/verifications'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -127,8 +127,8 @@ export interface FileRouteTypes {
     | '/my-bids'
     | '/my-posts'
     | '/post'
-    | '/admin/verifications'
     | '/jobs/$id'
+    | '/admin/verifications'
   id:
     | '__root__'
     | '/'
@@ -139,8 +139,8 @@ export interface FileRouteTypes {
     | '/_authenticated/my-bids'
     | '/_authenticated/my-posts'
     | '/_authenticated/post'
+    | '/jobs/$id'
     | '/_authenticated/admin/verifications'
-    | '/_authenticated/jobs/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -149,6 +149,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   VerifyRoute: typeof VerifyRoute
+  JobsIdRoute: typeof JobsIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -209,18 +210,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPostRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/jobs/$id': {
+      id: '/jobs/$id'
+      path: '/jobs/$id'
+      fullPath: '/jobs/$id'
+      preLoaderRoute: typeof JobsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/admin/verifications': {
       id: '/_authenticated/admin/verifications'
       path: '/admin/verifications'
       fullPath: '/admin/verifications'
       preLoaderRoute: typeof AuthenticatedAdminVerificationsRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/jobs/$id': {
-      id: '/_authenticated/jobs/$id'
-      path: '/jobs/$id'
-      fullPath: '/jobs/$id'
-      preLoaderRoute: typeof AuthenticatedJobsIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
   }
@@ -231,7 +232,6 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedMyPostsRoute: typeof AuthenticatedMyPostsRoute
   AuthenticatedPostRoute: typeof AuthenticatedPostRoute
   AuthenticatedAdminVerificationsRoute: typeof AuthenticatedAdminVerificationsRoute
-  AuthenticatedJobsIdRoute: typeof AuthenticatedJobsIdRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -239,7 +239,6 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedMyPostsRoute: AuthenticatedMyPostsRoute,
   AuthenticatedPostRoute: AuthenticatedPostRoute,
   AuthenticatedAdminVerificationsRoute: AuthenticatedAdminVerificationsRoute,
-  AuthenticatedJobsIdRoute: AuthenticatedJobsIdRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
@@ -251,6 +250,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   VerifyRoute: VerifyRoute,
+  JobsIdRoute: JobsIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
