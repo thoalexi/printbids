@@ -4,13 +4,27 @@ import { z } from 'zod';
 import { requireSupabaseAuth } from '@/integrations/supabase/auth-middleware';
 import type { Database } from '@/integrations/supabase/types';
 import { launchAreas } from '@/lib/printbids';
-export const browseJobs = createServerFn({method:'GET'}).handler(async()=>{
+function publicDb(){
  const key=process.env['SUPABASE_PUBLISHABLE_KEY']; const url=process.env['SUPABASE_URL'];
  if(!key||!url) throw new Error('Job listing is unavailable');
- const db=createClient<Database>(url,key,{auth:{persistSession:false},global:{fetch:(input,init)=>{const h=new Headers(init?.headers); if(key.startsWith('sb_')&&h.get('Authorization')===`Bearer ${key}`)h.delete('Authorization');h.set('apikey',key);return fetch(input,{...init,headers:h});}}});
- const {data,error}=await db.from('jobs').select('*').eq('status','open').in('region',launchAreas).order('created_at',{ascending:false}); if(error)throw error; return data;
+ return createClient<Database>(url,key,{auth:{persistSession:false,autoRefreshToken:false},global:{fetch:(input,init)=>{const h=new Headers(init?.headers); if(key.startsWith('sb_')&&h.get('Authorization')===`Bearer ${key}`)h.delete('Authorization');h.set('apikey',key);return fetch(input,{...init,headers:h});}}});
+}
+const PUBLIC_COLUMNS='id,owner_id,owner_name,title,summary,quantity,deadline,budget,technology,material,fulfillment,region,status,bid_count,image_key,created_at,category,dimensions,file_status,purpose,finish,color,delivery,verified_only';
+export const browseJobs = createServerFn({method:'GET'}).handler(async()=>{
+  const db=publicDb();
+  const {data,error}=await db.from('jobs').select(PUBLIC_COLUMNS).eq('status','open').in('region',launchAreas).order('created_at',{ascending:false}); if(error)throw error;
+  const vc=await db.rpc('verified_customers');
+  const verified=new Set((vc.data??[]).map(v=>v.user_id));
+  return data.map(j=>({...j,verified_customer:verified.has(j.owner_id)}));
 });
+export type PublicJob = Awaited<ReturnType<typeof browseJobs>>[number];
 export const jobsQuery = { queryKey: ['public-jobs'], queryFn: () => browseJobs() };
+export const jobPreview = createServerFn({method:'GET'}).inputValidator((v:unknown)=>z.object({id:z.string().uuid()}).parse(v)).handler(async({data})=>{
+  const db=publicDb();
+  const r=await db.from('jobs').select(PUBLIC_COLUMNS).eq('id',data.id).eq('status','open').in('region',launchAreas).maybeSingle(); if(r.error)throw r.error;
+  return r.data;
+});
+export const previewQuery=(id:string)=>({queryKey:['job-preview',id],queryFn:()=>jobPreview({data:{id}})});
 export const generateQuestions = createServerFn({method:'POST'}).middleware([requireSupabaseAuth]).inputValidator((v:unknown)=>z.object({jobId:z.string().uuid()}).parse(v)).handler(async({data,context})=>{
  const {data:job,error}=await context.supabase.from('jobs').select('*').eq('id',data.jobId).eq('owner_id',context.userId).single(); if(error||!job)throw new Error('Draft not found');
  const {data:detail}=await context.supabase.from('job_details').select('*').eq('job_id',job.id).single(); if(detail?.ai_blocked) throw new Error(detail.ai_blocked); if(detail?.technical_questions.length) return detail.technical_questions;

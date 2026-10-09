@@ -5,8 +5,7 @@ import { Plus, X, Upload, ArrowRight, Sparkles, Check, FileBox } from 'lucide-re
 import { Button, buttonVariants } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { generateQuestions } from '@/lib/jobs.functions';
-import { materials, technologies, launchAreas } from '@/lib/printbids';
-import { toast } from 'sonner';
+import { materialChoices, technologies, launchAreas, categories, fileStatuses, purposes, finishes, deliveries } from '@/lib/printbids';
 
 const ACCEPTED = '.stl,.step,.stp,.3mf,.obj,.zip,.jpg,.jpeg,.png,.webp,.pdf,.svg,.dxf,image/*';
 const OK_NAME = /\.(stl|step|stp|3mf|obj|zip|jpg|jpeg|png|webp|pdf|svg|dxf)$/i;
@@ -23,7 +22,9 @@ export function PostJob({ userId }: { userId: string }) {
   const [questions, setQuestions] = useState<string[]>([]);
   const [custom, setCustom] = useState<string[]>([]);
   const [files, setFiles] = useState<File[]>([]);
-  const [needsDesign, setNeedsDesign] = useState(false);
+  const [fileStatus, setFileStatus] = useState<string>(fileStatuses[0] ?? 'Yes');
+  const [pickColor, setPickColor] = useState(false);
+  const needsDesign = fileStatus === 'No, I need it designed';
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [dragging, setDragging] = useState(false);
@@ -78,7 +79,7 @@ export function PostJob({ userId }: { userId: string }) {
             e.preventDefault();
             setError('');
             if (!needsDesign && !files.length) {
-              setError('Upload a 3D model or select design help.');
+              setError('Add your 3D file, photo or sketch — or choose "No, I need it designed".');
               return;
             }
             setBusy(true);
@@ -97,8 +98,17 @@ export function PostJob({ userId }: { userId: string }) {
                     budget: f.get('budget') ? Number(f.get('budget')) : null,
                     technology: String(f.get('technology')),
                     material: String(f.get('material')),
-                    fulfillment: String(f.get('fulfillment')),
+                    fulfillment: String(f.get('delivery')) === 'Local pickup' ? 'Local pickup' : 'Shipping',
+                    delivery: String(f.get('delivery')),
                     region: String(f.get('region')),
+                    category: String(f.get('category')),
+                    dimensions: String(f.get('dimensions') ?? '').slice(0, 200),
+                    file_status: fileStatus,
+                    purpose: String(f.get('purpose')),
+                    finish: String(f.get('finish')),
+                    color: pickColor ? String(f.get('color') ?? '').trim().slice(0, 80) || "Maker's choice" : "Maker's choice",
+                    verified_only: f.get('verified_only') === 'on',
+                    rights_confirmed: f.get('rights') === 'on',
                   })
                   .select('id')
                   .single();
@@ -126,7 +136,6 @@ export function PostJob({ userId }: { userId: string }) {
               const q = await generate({ data: { jobId } });
               setQuestions(q);
               setStep(2);
-              toast.success('Draft saved');
             } catch (err) {
               setError(err instanceof Error ? err.message : 'Unable to save draft');
             } finally {
@@ -155,6 +164,18 @@ export function PostJob({ userId }: { userId: string }) {
               maxLength={10000}
             />
           </label>
+          <label>
+            Category
+            <select name="category" className="field" required>
+              {categories.map(c => (
+                <option key={c}>{c}</option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Approximate dimensions · optional
+            <input className="field" name="dimensions" maxLength={200} placeholder="e.g. 10 × 6 × 4 cm, or about the size of a phone" />
+          </label>
           <div className="grid sm:grid-cols-3 gap-5">
             <label>
               Quantity
@@ -175,6 +196,47 @@ export function PostJob({ userId }: { userId: string }) {
               <input className="field" type="number" name="budget" min={0} placeholder="No fixed budget" />
             </label>
           </div>
+          <label>
+            Do you have a 3D file?
+            <select className="field" value={fileStatus} onChange={e => setFileStatus(e.target.value)}>
+              {fileStatuses.map(v => (
+                <option key={v}>{v}</option>
+              ))}
+            </select>
+          </label>
+          <div className="grid sm:grid-cols-2 gap-5">
+            <label>
+              What's it for?
+              <select name="purpose" className="field">
+                {purposes.map(v => (
+                  <option key={v}>{v}</option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Finish
+              <select name="finish" className="field">
+                {finishes.map(v => (
+                  <option key={v}>{v}</option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <div className="grid sm:grid-cols-2 gap-5">
+            <label>
+              Color
+              <select className="field" value={pickColor ? 'pick' : 'maker'} onChange={e => setPickColor(e.target.value === 'pick')}>
+                <option value="maker">Maker's choice</option>
+                <option value="pick">I'll pick a color</option>
+              </select>
+            </label>
+            {pickColor && (
+              <label>
+                Your color
+                <input className="field" name="color" required maxLength={80} placeholder="e.g. Matte black" />
+              </label>
+            )}
+          </div>
           <div className="grid sm:grid-cols-2 gap-5">
             <label>
               Print technology
@@ -187,7 +249,7 @@ export function PostJob({ userId }: { userId: string }) {
             <label>
               Material preference
               <select name="material" className="field">
-                {materials.map(t => (
+                {materialChoices.map(t => (
                   <option key={t}>{t}</option>
                 ))}
               </select>
@@ -258,16 +320,13 @@ export function PostJob({ userId }: { userId: string }) {
               50 MB each
             </p>
           </div>
-          <label className="flex items-center gap-3">
-            <input type="checkbox" checked={needsDesign} onChange={e => setNeedsDesign(e.target.checked)} />
-            Need design help / no 3D file yet
-          </label>
           <div className="grid sm:grid-cols-2 gap-5">
             <label>
-              Fulfillment
-              <select className="field" name="fulfillment">
-                <option>Shipping</option>
-                <option>Local pickup</option>
+              Delivery
+              <select className="field" name="delivery">
+                {deliveries.map(v => (
+                  <option key={v}>{v}</option>
+                ))}
               </select>
             </label>
             <label>
@@ -290,8 +349,8 @@ export function PostJob({ userId }: { userId: string }) {
                   className="field"
                   value={q}
                   required
-                  maxLength={500}
-                  placeholder="What should every maker answer?"
+                  maxLength={200}
+                  placeholder="What should every maker answer? (200 characters max)"
                   onChange={e => setCustom(a => a.map((v, n) => (n === i ? e.target.value : v)))}
                 />
                 <Button
@@ -316,6 +375,19 @@ export function PostJob({ userId }: { userId: string }) {
               Add a question
             </Button>
           </div>
+          <label className="flex items-start gap-3 font-normal">
+            <input type="checkbox" name="verified_only" className="mt-0.5" />
+            <span>
+              Verified Makers only
+              <span className="block text-xs text-muted-foreground mt-1">Only approved makers can see your files and bid.</span>
+            </span>
+          </label>
+          <label className="flex items-start gap-3 font-normal">
+            <input type="checkbox" name="rights" required className="mt-0.5" />
+            <span>
+              I own or have the rights to the files I'm uploading, and this isn't a weapon or an unlicensed copy of a character, logo or product.
+            </span>
+          </label>
           <div className="border-t border-border pt-6 flex justify-end">
             <Button disabled={busy} className="h-11">
               {busy ? 'Saving & preparing questions…' : 'Save draft & continue'}
@@ -338,7 +410,6 @@ export function PostJob({ userId }: { userId: string }) {
               if (d.error) throw d.error;
               const j = await supabase.from('jobs').update({ status: 'open' }).eq('id', id);
               if (j.error) throw j.error;
-              toast.success('Your print job is open for bids');
               await navigate({ to: '/jobs/$id', params: { id } });
             } catch (err) {
               setError(err instanceof Error ? err.message : 'Unable to publish');

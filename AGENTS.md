@@ -16,3 +16,8 @@
 - Use row-locked bid triggers and a narrowly authorized hire RPC for transactional bid limits and awards; regular edits cannot modify counts or awards.
 - Keep AI requests in authenticated server functions and files in private Cloud Storage; signed URLs are issued only under participant-scoped policies.
 - Keep user roles separate from editable profiles and verification approval restricted to database-validated admins.
+- Keep browse filters in URL search params with "|"-separated multi-select values; public routes validate every param.
+- Show customer and maker first names from snapshot columns set by database triggers, never from profile reads.
+- Gate file downloads with the storage SELECT policy (participants, plus verified makers on verified-only jobs); the UI only mirrors it.
+- Sign-in return paths use a validated `redirect` search param (starts with "/", not "//").
+- Feedback and job reports are insert-only for users and readable only by database-validated admins.
