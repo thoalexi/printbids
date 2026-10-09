@@ -225,7 +225,7 @@ export function PostJob({ userId }: { userId: string }) {
             />
             <label
               htmlFor="job-files"
-              className={`upload-button ${buttonVariants({ variant: 'default', size: 'sm' })} cursor-pointer`}
+              className={`${buttonVariants({ variant: 'default', size: 'sm' })} cursor-pointer`}
             >
               Choose files
             </label>
@@ -258,7 +258,7 @@ export function PostJob({ userId }: { userId: string }) {
               50 MB each
             </p>
           </div>
-          <label className="row-label items-center gap-3">
+          <label className="flex items-center gap-3">
             <input type="checkbox" checked={needsDesign} onChange={e => setNeedsDesign(e.target.checked)} />
             Need design help / no 3D file yet
           </label>
