@@ -1,0 +1,3 @@
+CREATE OR REPLACE FUNCTION public.guard_details()
+ RETURNS trigger LANGUAGE plpgsql SET search_path TO 'public'
+AS $function$ DECLARE j public.jobs; BEGIN SELECT * INTO j FROM public.jobs WHERE id=NEW.job_id FOR UPDATE; IF j.bid_count>0 THEN RAISE EXCEPTION 'Job details are locked after the first bid'; END IF; IF TG_OP='UPDATE' AND NEW.job_id<>OLD.job_id THEN RAISE EXCEPTION 'Cannot move job details'; END IF; IF EXISTS(SELECT 1 FROM unnest(NEW.files) f WHERE f !~* '\.(stl|step|stp|3mf|obj|zip|jpg|jpeg|png|webp|pdf|svg|dxf)$') THEN RAISE EXCEPTION 'Unsupported file format'; END IF; RETURN NEW; END $function$;
