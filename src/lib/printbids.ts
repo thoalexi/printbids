@@ -17,6 +17,10 @@ export const meta = (title: string, description: string, path?: string) => ({lin
 export const money = (amount: number) => new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:2}).format(amount);
 export function timeline(job: Pick<Job,'deadline'>) { const days = Math.ceil((Date.parse(job.deadline)-Date.now())/86400000); return days <= 7 ? 'Within a week' : days <= 30 ? 'Within a month' : 'Flexible'; }
 export const firstName = (name?: string | null) => (name ?? '').trim().split(/\s+/)[0] || 'Customer';
+/** 5% fee with a $1 minimum, in cents. Used for both the customer service fee and the maker fee. */
+export const feeCents = (total: number) => Math.max(100, Math.round(total * 5));
+export const FOUNDING_SPOTS = 50;
+export const FEE_FREE_HIRES = 5;
 export const safeRedirect = (value: unknown) => typeof value === 'string' && value.startsWith('/') && !value.startsWith('//') ? value : '/';
 
 export const launchAreas = ['Atlanta, GA','Decatur, GA','Marietta, GA','Smyrna, GA','Sandy Springs, GA','Roswell, GA','Alpharetta, GA','Johns Creek, GA','Dunwoody, GA','Brookhaven, GA','Chamblee, GA','Tucker, GA','Norcross, GA','Duluth, GA','Lawrenceville, GA','Kennesaw, GA','Woodstock, GA','Douglasville, GA','East Point, GA','College Park, GA','Peachtree City, GA','Fayetteville, GA','Stockbridge, GA','McDonough, GA','Stone Mountain, GA','Lilburn, GA','Suwanee, GA'];
