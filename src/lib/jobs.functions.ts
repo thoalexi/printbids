@@ -3,11 +3,12 @@ import { createClient } from '@supabase/supabase-js';
 import { z } from 'zod';
 import { requireSupabaseAuth } from '@/integrations/supabase/auth-middleware';
 import type { Database } from '@/integrations/supabase/types';
+import { launchAreas } from '@/lib/printbids';
 export const browseJobs = createServerFn({method:'GET'}).handler(async()=>{
  const key=process.env['SUPABASE_PUBLISHABLE_KEY']; const url=process.env['SUPABASE_URL'];
  if(!key||!url) throw new Error('Job listing is unavailable');
  const db=createClient<Database>(url,key,{auth:{persistSession:false},global:{fetch:(input,init)=>{const h=new Headers(init?.headers); if(key.startsWith('sb_')&&h.get('Authorization')===`Bearer ${key}`)h.delete('Authorization');h.set('apikey',key);return fetch(input,{...init,headers:h});}}});
- const {data,error}=await db.from('jobs').select('*').eq('status','open').order('created_at',{ascending:false}); if(error)throw error; return data;
+ const {data,error}=await db.from('jobs').select('*').eq('status','open').in('region',launchAreas).order('created_at',{ascending:false}); if(error)throw error; return data;
 });
 export const jobsQuery = { queryKey: ['public-jobs'], queryFn: () => browseJobs() };
 export const generateQuestions = createServerFn({method:'POST'}).middleware([requireSupabaseAuth]).inputValidator((v:unknown)=>z.object({jobId:z.string().uuid()}).parse(v)).handler(async({data,context})=>{

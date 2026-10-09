@@ -10,6 +10,7 @@
 <!-- LOVABLE:END -->
 
 ## PrintBids architecture
+- Keep launch locations in a shared select list and matching database validation, and filter public listings by that list; geography restrictions must not rely on form controls alone.
 - Keep the marketplace at `/` and signed-in workflows under the managed `_authenticated` layout; guests can browse safe previews without accessing full briefs.
 - Split public job summaries from authenticated job details and sealed bids; database policies enforce visibility instead of relying on UI hiding.
 - Use row-locked bid triggers and a narrowly authorized hire RPC for transactional bid limits and awards; regular edits cannot modify counts or awards.
