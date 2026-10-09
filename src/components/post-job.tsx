@@ -210,7 +210,7 @@ export function PostJob({ userId }: { userId: string }) {
           >
             <Upload className="size-6 text-primary mx-auto mb-3" />
             <p className="text-sm font-medium">Add your 3D model, sketch or photo</p>
-            <p className="text-xs text-muted-foreground mt-1 mb-4">
+            <p className="text-xs text-foreground/60 mt-1 mb-4">
               Drag files here, or pick them from your computer
             </p>
             <input
@@ -227,23 +227,18 @@ export function PostJob({ userId }: { userId: string }) {
               htmlFor="job-files"
               className={`upload-button ${buttonVariants({ variant: 'default', size: 'sm' })} cursor-pointer`}
             >
-              <Upload />
               Choose files
             </label>
-            <p className="text-xs text-muted-foreground mt-4">
-              3D models (STL, STEP, 3MF, OBJ, ZIP), design drawings (PDF, SVG, DXF) or photos (JPG, PNG, WEBP) · up to
-              50 MB each
-            </p>
             {files.length > 0 && (
-              <ul className="mt-5 space-y-2 text-left">
+              <ul className="mt-5 mx-auto max-w-md space-y-2 text-left">
                 {files.map(f => (
                   <li
                     key={f.name}
-                    className="flex items-center gap-2 text-xs rounded-md border border-border bg-background px-3 py-2"
+                    className="flex items-center gap-3 text-xs rounded-md border border-border bg-background px-3 py-2"
                   >
                     <FileBox className="size-4 text-primary shrink-0" />
                     <span className="truncate grow">{f.name}</span>
-                    <span className="text-muted-foreground shrink-0">{(f.size / 1024 / 1024).toFixed(1)} MB</span>
+                    <span className="text-muted-foreground shrink-0">{fileSize(f.size)}</span>
                     <Button
                       type="button"
                       size="icon"
@@ -258,6 +253,10 @@ export function PostJob({ userId }: { userId: string }) {
                 ))}
               </ul>
             )}
+            <p className="text-xs text-foreground/60 mt-4">
+              3D models (STL, STEP, 3MF, OBJ, ZIP), design drawings (PDF, SVG, DXF) or photos (JPG, PNG, WEBP) · up to
+              50 MB each
+            </p>
           </div>
           <label className="flex items-center gap-3">
             <input type="checkbox" checked={needsDesign} onChange={e => setNeedsDesign(e.target.checked)} />
