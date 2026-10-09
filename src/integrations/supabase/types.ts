@@ -14,13 +14,283 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      bids: {
+        Row: {
+          answers: string[]
+          created_at: string
+          id: string
+          job_id: string
+          lead_days: number
+          maker_id: string
+          materials: number
+          notes: string
+          printing: number
+          shipping: number
+        }
+        Insert: {
+          answers?: string[]
+          created_at?: string
+          id?: string
+          job_id: string
+          lead_days: number
+          maker_id: string
+          materials: number
+          notes?: string
+          printing: number
+          shipping: number
+        }
+        Update: {
+          answers?: string[]
+          created_at?: string
+          id?: string
+          job_id?: string
+          lead_days?: number
+          maker_id?: string
+          materials?: number
+          notes?: string
+          printing?: number
+          shipping?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bids_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contact_cards: {
+        Row: {
+          address: string
+          email: string
+          job_id: string
+          notes: string
+          phone: string
+          side: string
+          tracking: string
+          user_id: string
+        }
+        Insert: {
+          address?: string
+          email?: string
+          job_id: string
+          notes?: string
+          phone?: string
+          side: string
+          tracking?: string
+          user_id: string
+        }
+        Update: {
+          address?: string
+          email?: string
+          job_id?: string
+          notes?: string
+          phone?: string
+          side?: string
+          tracking?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_cards_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      job_details: {
+        Row: {
+          ai_blocked: string | null
+          description: string
+          files: string[]
+          job_id: string
+          needs_design: boolean
+          questions: string[]
+          technical_answers: string[]
+          technical_questions: string[]
+        }
+        Insert: {
+          ai_blocked?: string | null
+          description: string
+          files?: string[]
+          job_id: string
+          needs_design?: boolean
+          questions?: string[]
+          technical_answers?: string[]
+          technical_questions?: string[]
+        }
+        Update: {
+          ai_blocked?: string | null
+          description?: string
+          files?: string[]
+          job_id?: string
+          needs_design?: boolean
+          questions?: string[]
+          technical_answers?: string[]
+          technical_questions?: string[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_details_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: true
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      jobs: {
+        Row: {
+          awarded_maker: string | null
+          bid_count: number
+          budget: number | null
+          created_at: string
+          deadline: string
+          fulfillment: string
+          id: string
+          image_key: number
+          material: string
+          owner_id: string
+          quantity: number
+          region: string
+          status: string
+          summary: string
+          technology: string
+          title: string
+        }
+        Insert: {
+          awarded_maker?: string | null
+          bid_count?: number
+          budget?: number | null
+          created_at?: string
+          deadline: string
+          fulfillment?: string
+          id?: string
+          image_key?: number
+          material?: string
+          owner_id: string
+          quantity: number
+          region?: string
+          status?: string
+          summary?: string
+          technology?: string
+          title: string
+        }
+        Update: {
+          awarded_maker?: string | null
+          bid_count?: number
+          budget?: number | null
+          created_at?: string
+          deadline?: string
+          fulfillment?: string
+          id?: string
+          image_key?: number
+          material?: string
+          owner_id?: string
+          quantity?: number
+          region?: string
+          status?: string
+          summary?: string
+          technology?: string
+          title?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_path: string | null
+          display_name: string
+          id: string
+          links: string[]
+          materials: string[]
+          printer_specs: string
+        }
+        Insert: {
+          avatar_path?: string | null
+          display_name?: string
+          id: string
+          links?: string[]
+          materials?: string[]
+          printer_specs?: string
+        }
+        Update: {
+          avatar_path?: string | null
+          display_name?: string
+          id?: string
+          links?: string[]
+          materials?: string[]
+          printer_specs?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          role: string
+          user_id: string
+        }
+        Insert: {
+          role: string
+          user_id: string
+        }
+        Update: {
+          role?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      verifications: {
+        Row: {
+          created_at: string
+          id: string
+          links: string[]
+          materials: string[]
+          photos: string[]
+          printer_specs: string
+          review_notes: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          links?: string[]
+          materials: string[]
+          photos?: string[]
+          printer_specs: string
+          review_notes?: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          links?: string[]
+          materials?: string[]
+          photos?: string[]
+          printer_specs?: string
+          review_notes?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      hire_bid: { Args: { bid_id: string }; Returns: undefined }
+      is_admin: { Args: never; Returns: boolean }
+      verified_makers: {
+        Args: never
+        Returns: {
+          user_id: string
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never

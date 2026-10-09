@@ -1,5 +1,13 @@
 {
   "version": "7",
   "dialect": "postgresql",
-  "entries": []
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1791568040790,
+      "tag": "0000_printbids_core",
+      "breakpoints": true
+    }
+  ]
 }
