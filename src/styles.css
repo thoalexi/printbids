@@ -101,6 +101,7 @@
 .field:focus { border-color: var(--primary); }
 label { display: block; font-size: 13px; font-weight: 500; }
 label.upload-button { display: inline-flex; }
+label.row-label { display: flex; }
 label .field { margin-top: 7px; }
 body { margin: 0; font-family: 'DM Sans', sans-serif; letter-spacing: 0; }
 .print-image { width: 100%; height: 100%; object-fit: cover; }
