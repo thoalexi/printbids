@@ -23,7 +23,7 @@ function JobPage() {
   if (ready && user) return <JobDetail id={id} userId={user.id} cardSession={card_session} />;
   if (!job) return <main className="max-w-4xl mx-auto px-6 py-14"><h1 className="text-2xl">Job unavailable</h1><p className="text-muted-foreground mt-3">This job is private, already hired, or no longer available.</p><div className="flex gap-3 mt-6"><Button asChild><Link to="/">Browse jobs</Link></Button>{ready && <Button asChild variant="outline"><Link to="/auth" search={{ redirect: `/jobs/${id}` }}>Sign in</Link></Button>}</div></main>;
   return <main className="max-w-3xl mx-auto px-6 py-10">
-    <Link to="/" className="text-muted-foreground text-xs flex gap-2 items-center mb-7"><ArrowLeft className="size-3" />Back to print jobs</Link>
+    <Link to="/browse" className="text-muted-foreground text-xs flex gap-2 items-center mb-7"><ArrowLeft className="size-3" />Back to print jobs</Link>
     <div className="text-xs text-primary mb-4">{job.category} · {job.material}</div>
     <h1 className="text-3xl font-semibold leading-tight">{job.title}</h1>
     <p className="text-sm text-muted-foreground mt-3">Posted by {firstName(job.owner_name)}</p>

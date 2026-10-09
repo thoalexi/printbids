@@ -52,7 +52,7 @@ export function JobDetail({ id, userId, cardSession }: { id: string; userId: str
   const run = async (where: string, fn: () => Promise<void>, ok?: string) => { setBusy(true); setNotice(null); try { await fn(); await refetch(); if (ok) setNotice({ kind: 'ok', text: ok, where }); } catch (e) { setNotice({ kind: 'error', text: errText(e), where }); } finally { setBusy(false); } };
 
   return <main className="max-w-6xl mx-auto px-6 py-10">
-    <Link to="/" className="text-muted-foreground text-xs flex gap-2 items-center mb-7"><ArrowLeft className="size-3" />Back to print jobs</Link>
+    <Link to="/browse" className="text-muted-foreground text-xs flex gap-2 items-center mb-7"><ArrowLeft className="size-3" />Back to print jobs</Link>
     <div className="grid lg:grid-cols-[1fr_340px] gap-9">
       <div className="min-w-0">
         <div className="flex flex-wrap gap-2 mb-4 text-xs text-primary"><span>{job.category}</span>·<span>{job.material}</span>·<span className="capitalize">{job.status === 'awarded' ? 'Hired' : job.status}</span>{job.verified_only && <span className="text-success">· Verified Makers only</span>}</div>
