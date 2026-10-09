@@ -29,6 +29,13 @@
       "when": 1791572397048,
       "tag": "0003_knowledge_alignment",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1791573070434,
+      "tag": "0004_payments_holds_and_fees",
+      "breakpoints": true
     }
   ]
 }

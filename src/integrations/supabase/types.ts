@@ -14,6 +14,47 @@ export type Database = {
   }
   public: {
     Tables: {
+      bid_cards: {
+        Row: {
+          bid_id: string
+          created_at: string
+          customer_id: string
+          environment: string
+          job_id: string
+          maker_id: string
+          payment_method_id: string
+          status: string
+        }
+        Insert: {
+          bid_id: string
+          created_at?: string
+          customer_id: string
+          environment: string
+          job_id: string
+          maker_id: string
+          payment_method_id: string
+          status?: string
+        }
+        Update: {
+          bid_id?: string
+          created_at?: string
+          customer_id?: string
+          environment?: string
+          job_id?: string
+          maker_id?: string
+          payment_method_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bid_cards_bid_id_fkey"
+            columns: ["bid_id"]
+            isOneToOne: true
+            referencedRelation: "bids"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bids: {
         Row: {
           answers: string[]
@@ -164,6 +205,44 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      hire_charges: {
+        Row: {
+          amount_cents: number
+          bid_id: string
+          created_at: string
+          environment: string
+          job_id: string
+          maker_id: string
+          payment_intent_id: string | null
+        }
+        Insert: {
+          amount_cents: number
+          bid_id: string
+          created_at?: string
+          environment: string
+          job_id: string
+          maker_id: string
+          payment_intent_id?: string | null
+        }
+        Update: {
+          amount_cents?: number
+          bid_id?: string
+          created_at?: string
+          environment?: string
+          job_id?: string
+          maker_id?: string
+          payment_intent_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hire_charges_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: true
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       job_details: {
         Row: {
@@ -426,6 +505,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      award_job: { Args: { target_bid: string }; Returns: undefined }
       hire_bid: { Args: { bid_id: string }; Returns: undefined }
       in_atlanta_area: { Args: { area: string }; Returns: boolean }
       is_admin: { Args: never; Returns: boolean }
