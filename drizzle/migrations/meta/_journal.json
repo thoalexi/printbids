@@ -1,5 +1,20 @@
 {
   "version": "7",
   "dialect": "postgresql",
-  "entries": []
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1791568040790,
+      "tag": "0000_printbids_core",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1791568576358,
+      "tag": "0001_atlanta_launch_and_security",
+      "breakpoints": true
+    }
+  ]
 }
