@@ -14,7 +14,6 @@ import type { User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { AuthContext } from '@/lib/auth';
 import { SiteHeader, SiteFooter } from '@/components/site-shell';
-import { Toaster } from 'sonner';
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 
@@ -140,7 +139,7 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-      <AuthContext.Provider value={{user,ready}}><SiteHeader/><Outlet/><SiteFooter/><Toaster theme="dark" richColors/></AuthContext.Provider>
+      <AuthContext.Provider value={{user,ready}}><SiteHeader/><Outlet/><SiteFooter/></AuthContext.Provider>
     </QueryClientProvider>
   );
 }
