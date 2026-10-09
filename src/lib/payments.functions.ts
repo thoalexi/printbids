@@ -45,6 +45,11 @@ export const placeBid = createServerFn({ method: 'POST' }).middleware([requireSu
     const r = await supabaseAdmin.from('bids').insert({ ...bid, job_id: jobId, maker_id: context.userId }).select('id').single();
     if (r.error) return { error: r.error.message };
     await supabaseAdmin.from('bid_cards').insert({ bid_id: r.data.id, maker_id: context.userId, job_id: jobId, environment, customer_id: customer, payment_method_id: pm });
+    // Opportunistically release cards on jobs whose needed-by date has passed.
+    const { releaseCards } = await import('./stripe.server');
+    const expired = await supabaseAdmin.from('jobs').select('id').lt('deadline', new Date().toISOString().slice(0, 10)).limit(200);
+    const ids = (expired.data ?? []).map(j => j.id);
+    if (ids.length) { const old = await supabaseAdmin.from('bid_cards').select('bid_id,payment_method_id,environment').eq('status', 'saved').in('job_id', ids); await releaseCards(old.data ?? []); }
     return { ok: true as const };
   });
 
