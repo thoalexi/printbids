@@ -9,6 +9,7 @@ import { useAuth } from '@/lib/auth';
 import { firstName, meta } from '@/lib/printbids';
 
 export const Route = createFileRoute('/jobs/$id')({
+  validateSearch: (s: Record<string, unknown>): { card_session?: string | undefined } => ({ card_session: typeof s['card_session'] === 'string' && /^cs_[A-Za-z0-9_]+$/.test(s['card_session']) ? s['card_session'] : undefined }),
   loader: async ({ context, params }) => { try { return await context.queryClient.ensureQueryData(previewQuery(params.id)); } catch { return null; } },
   head: ({ loaderData }) => loaderData ? meta(loaderData.title, `${loaderData.category} print job in ${loaderData.region}. Sealed bids from local makers on PrintBids.`) : meta('Print job', 'Review a custom 3D printing request and place a sealed bid on PrintBids.'),
   component: JobPage,
@@ -16,9 +17,10 @@ export const Route = createFileRoute('/jobs/$id')({
 
 function JobPage() {
   const { id } = Route.useParams();
+  const { card_session } = Route.useSearch();
   const { user, ready } = useAuth();
   const { data: job } = useQuery({ ...previewQuery(id), initialData: Route.useLoaderData() ?? undefined });
-  if (ready && user) return <JobDetail id={id} userId={user.id} />;
+  if (ready && user) return <JobDetail id={id} userId={user.id} cardSession={card_session} />;
   if (!job) return <main className="max-w-4xl mx-auto px-6 py-14"><h1 className="text-2xl">Job unavailable</h1><p className="text-muted-foreground mt-3">This job is private, already hired, or no longer available.</p><div className="flex gap-3 mt-6"><Button asChild><Link to="/">Browse jobs</Link></Button>{ready && <Button asChild variant="outline"><Link to="/auth" search={{ redirect: `/jobs/${id}` }}>Sign in</Link></Button>}</div></main>;
   return <main className="max-w-3xl mx-auto px-6 py-10">
     <Link to="/" className="text-muted-foreground text-xs flex gap-2 items-center mb-7"><ArrowLeft className="size-3" />Back to print jobs</Link>
