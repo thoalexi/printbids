@@ -5,7 +5,7 @@ export const Route = createFileRoute('/sitemap.xml')({
   server: {
     handlers: {
       GET: async ({ request }) => {
-        const origin = new URL(request.url).origin;
+        const origin = 'https://printbids.lovable.app'; void request;
         let jobs: { id: string }[] = [];
         try { jobs = await browseJobs(); } catch { jobs = []; }
         const paths = ['/', '/browse', '/verify', '/auth', ...jobs.map(j => `/jobs/${j.id}`)];

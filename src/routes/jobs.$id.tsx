@@ -11,7 +11,7 @@ import { firstName, meta } from '@/lib/printbids';
 export const Route = createFileRoute('/jobs/$id')({
   validateSearch: (s: Record<string, unknown>): { card_session?: string | undefined } => ({ card_session: typeof s['card_session'] === 'string' && /^cs_[A-Za-z0-9_]+$/.test(s['card_session']) ? s['card_session'] : undefined }),
   loader: async ({ context, params }) => { try { return await context.queryClient.ensureQueryData(previewQuery(params.id)); } catch { return null; } },
-  head: ({ loaderData }) => loaderData ? meta(loaderData.title, `${loaderData.category} print job in ${loaderData.region}. Sealed bids from local makers on PrintBids.`) : meta('Print job', 'Review a custom 3D printing request and place a sealed bid on PrintBids.'),
+  head: ({ loaderData, params }) => loaderData ? meta(loaderData.title, `${loaderData.category} print job in ${loaderData.region}. Sealed bids from local makers on PrintBids.`, `/jobs/${params.id}`) : meta('Print job', 'Review a custom 3D printing request and place a sealed bid on PrintBids.', `/jobs/${params.id}`),
   component: JobPage,
 });
 
