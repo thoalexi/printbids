@@ -6,3 +6,4 @@
 - [x] Sealed bids, five-bid enforcement, hire and mutual contact cards
 - [x] Maker applications and admin review
 - [x] End-to-end posting, bidding, award and contact-card checks
+- [x] Polish the job-posting file picker so it reads as a clear, well-proportioned upload control
