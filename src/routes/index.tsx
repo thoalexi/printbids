@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { BrowseJobs, validateBrowseSearch } from '@/components/browse-jobs';
+import { Landing } from '@/components/landing';
 import { jobsQuery } from '@/lib/jobs.functions';
 import { meta } from '@/lib/printbids';
-export const Route=createFileRoute('/')({validateSearch:validateBrowseSearch,head:()=>meta('Atlanta 3D print jobs','Discover custom 3D printing requests and verified makers in Atlanta and surrounding communities.'),loader:({context})=>context.queryClient.ensureQueryData(jobsQuery),component:BrowseJobs});
+export const Route=createFileRoute('/')({head:()=>meta('Custom 3D printing in Atlanta','Post your 3D printing job and get up to five sealed bids from local Atlanta makers. Makers only pay when hired.'),loader:({context})=>context.queryClient.ensureQueryData(jobsQuery),component:Landing});

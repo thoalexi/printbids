@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate, useSearch } from '@tanstack/react-router';
 import { useSuspenseQuery } from '@tanstack/react-query';
-import { Search, SlidersHorizontal, ArrowUpRight, ArrowRight, Box, Clock3, MapPin, LockKeyhole, X, ChevronDown, Layers3, ShieldCheck, BadgeCheck, User } from 'lucide-react';
+import { Search, SlidersHorizontal, ArrowUpRight, Box, Clock3, MapPin, LockKeyhole, X, ChevronDown,  BadgeCheck, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { jobsQuery, type PublicJob } from '@/lib/jobs.functions';
 import { categories, launchAreas, materialChoices, deliveries, neededBy, timeline, firstName } from '@/lib/printbids';
