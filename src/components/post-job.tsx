@@ -220,7 +220,10 @@ export function PostJob({ userId }: { userId: string }) {
               aria-label="Add 3D model, drawing or photo files"
               onChange={e => chooseFiles(Array.from(e.target.files ?? []))}
             />
-            <label htmlFor="job-files" className={`${buttonVariants({ variant: 'default', size: 'sm' })} cursor-pointer`}>
+            <label
+              htmlFor="job-files"
+              className={`upload-button ${buttonVariants({ variant: 'default', size: 'sm' })} cursor-pointer`}
+            >
               <Upload />
               Choose files
             </label>
