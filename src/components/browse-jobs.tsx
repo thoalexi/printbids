@@ -8,7 +8,8 @@ import { categories, launchAreas, materialChoices, deliveries, neededBy, timelin
 import { useAuth } from '@/lib/auth';
 import prints from '@/assets/prints.jpg';
 
-export type BrowseSearch = { q?: string; category?: string; location?: string; material?: string; file?: string; delivery?: string; needed?: string; vcust?: boolean; vmaker?: boolean; sort?: string };
+type O<T> = T | undefined;
+export type BrowseSearch = { q?: O<string>; category?: O<string>; location?: O<string>; material?: O<string>; file?: O<string>; delivery?: O<string>; needed?: O<string>; vcust?: O<boolean>; vmaker?: O<boolean>; sort?: O<string> };
 const str = (v: unknown) => (typeof v === 'string' && v.length <= 2000 ? v : undefined);
 export const validateBrowseSearch = (s: Record<string, unknown>): BrowseSearch => ({
   q: str(s['q']), category: str(s['category']), location: str(s['location']), material: str(s['material']), file: str(s['file']),

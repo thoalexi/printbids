@@ -22,7 +22,7 @@ export function PostJob({ userId }: { userId: string }) {
   const [questions, setQuestions] = useState<string[]>([]);
   const [custom, setCustom] = useState<string[]>([]);
   const [files, setFiles] = useState<File[]>([]);
-  const [fileStatus, setFileStatus] = useState(fileStatuses[0]);
+  const [fileStatus, setFileStatus] = useState<string>(fileStatuses[0] ?? 'Yes');
   const [pickColor, setPickColor] = useState(false);
   const needsDesign = fileStatus === 'No, I need it designed';
   const [busy, setBusy] = useState(false);
