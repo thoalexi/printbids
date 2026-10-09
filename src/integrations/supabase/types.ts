@@ -208,6 +208,7 @@ export type Database = {
           links: string[]
           materials: string[]
           printer_specs: string
+          service_area: string
         }
         Insert: {
           avatar_path?: string | null
@@ -216,6 +217,7 @@ export type Database = {
           links?: string[]
           materials?: string[]
           printer_specs?: string
+          service_area?: string
         }
         Update: {
           avatar_path?: string | null
@@ -224,6 +226,7 @@ export type Database = {
           links?: string[]
           materials?: string[]
           printer_specs?: string
+          service_area?: string
         }
         Relationships: []
       }
@@ -251,6 +254,7 @@ export type Database = {
           photos: string[]
           printer_specs: string
           review_notes: string
+          service_area: string
           status: string
           user_id: string
         }
@@ -262,6 +266,7 @@ export type Database = {
           photos?: string[]
           printer_specs: string
           review_notes?: string
+          service_area?: string
           status?: string
           user_id: string
         }
@@ -273,6 +278,7 @@ export type Database = {
           photos?: string[]
           printer_specs?: string
           review_notes?: string
+          service_area?: string
           status?: string
           user_id?: string
         }
@@ -284,6 +290,7 @@ export type Database = {
     }
     Functions: {
       hire_bid: { Args: { bid_id: string }; Returns: undefined }
+      in_atlanta_area: { Args: { area: string }; Returns: boolean }
       is_admin: { Args: never; Returns: boolean }
       verified_makers: {
         Args: never

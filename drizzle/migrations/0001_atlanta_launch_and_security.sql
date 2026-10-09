@@ -1,0 +1,17 @@
+ALTER TABLE public.profiles ADD COLUMN service_area text NOT NULL DEFAULT 'Atlanta, GA';
+CREATE FUNCTION public.in_atlanta_area(area text) RETURNS boolean LANGUAGE sql IMMUTABLE SET search_path=public AS $$ SELECT area=ANY(ARRAY['Atlanta, GA','Decatur, GA','Marietta, GA','Smyrna, GA','Sandy Springs, GA','Roswell, GA','Alpharetta, GA','Johns Creek, GA','Dunwoody, GA','Brookhaven, GA','Chamblee, GA','Tucker, GA','Norcross, GA','Duluth, GA','Lawrenceville, GA','Kennesaw, GA','Woodstock, GA','Douglasville, GA','East Point, GA','College Park, GA','Peachtree City, GA','Fayetteville, GA','Stockbridge, GA','McDonough, GA','Stone Mountain, GA','Lilburn, GA','Suwanee, GA']); $$;
+CREATE FUNCTION public.guard_launch_area() RETURNS trigger LANGUAGE plpgsql SET search_path=public AS $$ BEGIN IF NOT public.in_atlanta_area(NEW.region) THEN RAISE EXCEPTION 'PrintBids currently serves Atlanta and the surrounding areas only'; END IF; RETURN NEW; END $$;
+CREATE TRIGGER atlanta_jobs BEFORE INSERT OR UPDATE OF region ON public.jobs FOR EACH ROW EXECUTE FUNCTION public.guard_launch_area();
+CREATE FUNCTION public.guard_details() RETURNS trigger LANGUAGE plpgsql SET search_path=public AS $$ DECLARE j public.jobs; BEGIN SELECT * INTO j FROM public.jobs WHERE id=NEW.job_id FOR UPDATE; IF j.bid_count>0 THEN RAISE EXCEPTION 'Job details are locked after the first bid'; END IF; IF TG_OP='UPDATE' AND NEW.job_id<>OLD.job_id THEN RAISE EXCEPTION 'Cannot move job details'; END IF; IF EXISTS(SELECT 1 FROM unnest(NEW.files) f WHERE f !~* '\.(stl|step|3mf|obj|zip)$') THEN RAISE EXCEPTION 'Unsupported model file format'; END IF; RETURN NEW; END $$;
+CREATE TRIGGER lock_details BEFORE INSERT OR UPDATE ON public.job_details FOR EACH ROW EXECUTE FUNCTION public.guard_details();
+ALTER TABLE public.verifications ADD COLUMN service_area text NOT NULL DEFAULT 'Atlanta, GA';
+CREATE FUNCTION public.guard_maker_area() RETURNS trigger LANGUAGE plpgsql SET search_path=public AS $$ BEGIN IF NOT public.in_atlanta_area(NEW.service_area) THEN RAISE EXCEPTION 'Makers must serve Atlanta and surrounding areas'; END IF; RETURN NEW; END $$;
+CREATE TRIGGER atlanta_verifications BEFORE INSERT OR UPDATE ON public.verifications FOR EACH ROW EXECUTE FUNCTION public.guard_maker_area();
+CREATE TRIGGER atlanta_profiles BEFORE INSERT OR UPDATE OF service_area ON public.profiles FOR EACH ROW EXECUTE FUNCTION public.guard_maker_area();
+REVOKE ALL ON FUNCTION public.create_profile() FROM PUBLIC,anon,authenticated;
+REVOKE ALL ON FUNCTION public.guard_bid() FROM PUBLIC,anon,authenticated;
+REVOKE ALL ON FUNCTION public.guard_details() FROM PUBLIC,anon,authenticated;
+REVOKE ALL ON FUNCTION public.guard_job() FROM PUBLIC,anon,authenticated;
+REVOKE ALL ON FUNCTION public.guard_launch_area() FROM PUBLIC,anon,authenticated;
+REVOKE ALL ON FUNCTION public.guard_maker_area() FROM PUBLIC,anon,authenticated;
+REVOKE ALL ON FUNCTION public.is_admin() FROM PUBLIC,anon; GRANT EXECUTE ON FUNCTION public.is_admin() TO authenticated;
