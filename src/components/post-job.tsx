@@ -12,6 +12,9 @@ const ACCEPTED = '.stl,.step,.stp,.3mf,.obj,.zip,.jpg,.jpeg,.png,.webp,.pdf,.svg
 const OK_NAME = /\.(stl|step|stp|3mf|obj|zip|jpg|jpeg|png|webp|pdf|svg|dxf)$/i;
 const MAX_BYTES = 50 * 1024 * 1024;
 
+const fileSize = (bytes: number) =>
+  bytes >= 1024 * 1024 ? `${(bytes / 1024 / 1024).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`;
+
 export function PostJob({ userId }: { userId: string }) {
   const navigate = useNavigate();
   const generate = useServerFn(generateQuestions);
