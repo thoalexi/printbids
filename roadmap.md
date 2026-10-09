@@ -1,4 +1,5 @@
 # PrintBids
+- [ ] Restrict launch area to Atlanta and surrounding communities
 - [ ] ProjectBids-inspired browse, filters, navigation and imagery
 - [ ] Accounts and maker profiles
 - [ ] Secure jobs, model uploads, draft and AI follow-up publishing
