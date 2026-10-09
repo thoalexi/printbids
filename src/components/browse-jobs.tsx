@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { Link, useNavigate, useSearch } from '@tanstack/react-router';
-import { useSuspenseQuery } from '@tanstack/react-query';
+import { useSuspenseQuery, useQuery } from '@tanstack/react-query';
 import { Search, SlidersHorizontal, ArrowUpRight, Box, Clock3, MapPin, LockKeyhole, X, ChevronDown,  BadgeCheck, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { jobsQuery, type PublicJob } from '@/lib/jobs.functions';
+import { jobsQuery, foundingSpotsQuery, type PublicJob } from '@/lib/jobs.functions';
 import { categories, launchAreas, materialChoices, deliveries, neededBy, timeline, firstName } from '@/lib/printbids';
 import { useAuth } from '@/lib/auth';
 import prints from '@/assets/prints.jpg';
@@ -45,6 +45,7 @@ export function JobImage({ job, className = '' }: { job: { image_key: number; ti
 export function BrowseJobs() {
   const { data: jobs } = useSuspenseQuery(jobsQuery);
   const { user } = useAuth();
+  const { data: spots } = useQuery(foundingSpotsQuery);
   const search = useSearch({ from: '/browse' });
   const navigate = useNavigate({ from: '/browse' });
   const [active, setActive] = useState<GroupKey | null>(null);
@@ -62,7 +63,7 @@ export function BrowseJobs() {
   const clear = () => { setActive(null); void navigate({ search: {}, replace: true, resetScroll: false }); };
   return <main>
     <section className="max-w-7xl mx-auto px-6 pt-9">
-      <div className="flex justify-between items-start mb-6"><div><h1 className="text-3xl font-semibold">Browse print jobs</h1><p className="text-muted-foreground text-sm mt-2">A new challenge. A perfect fit for your printer.</p></div><span className="text-xs text-muted-foreground mt-2 flex items-center gap-2 shrink-0"><span className="size-1.5 rounded-full bg-success" />{visible.length} open jobs</span></div>
+      <div className="flex justify-between items-start mb-6"><div><h1 className="text-3xl font-semibold">Browse print jobs</h1><p className="text-muted-foreground text-sm mt-2">A new challenge. A perfect fit for your printer.</p>{!!spots && spots > 0 && <p className="text-xs text-primary mt-2">Founding Maker spots left: {spots} of 50</p>}</div><span className="text-xs text-muted-foreground mt-2 flex items-center gap-2 shrink-0"><span className="size-1.5 rounded-full bg-success" />{visible.length} open jobs</span></div>
       <div className="flex gap-3 flex-wrap pb-5 border-b border-border">
         <div className="relative flex-1 min-w-52 [&_input]:pl-10"><Search className="size-4 absolute left-3 top-3.5 text-muted-foreground" /><input className="field pl-10 h-11 text-sm" placeholder="Search jobs, materials, or keywords…" aria-label="Search jobs" defaultValue={search.q ?? ''} onChange={e => set({ q: e.target.value || undefined })} /></div>
         {groups.map(g => { const sel = split(search[g.key]); return <div className="relative" key={g.key}><Button variant="outline" className="h-11 text-xs bg-card" aria-expanded={active === g.key} onClick={() => setActive(active === g.key ? null : g.key)}><span>{g.label}{sel.length ? ` (${sel.length})` : ''}</span><ChevronDown className="size-3" /></Button>{active === g.key && <div className="absolute left-0 top-12 z-20 w-60 bg-popover border border-border p-3 rounded-md shadow-lg"><div className="max-h-72 overflow-auto">{g.values.map(value => <label key={value} className="flex gap-3 py-2 items-center text-xs cursor-pointer font-normal"><input type="checkbox" checked={sel.includes(value)} onChange={e => toggle(g.key, value, e.target.checked)} />{value}</label>)}</div><Button variant="ghost" size="sm" onClick={() => setActive(null)}>Done</Button></div>}</div>; })}

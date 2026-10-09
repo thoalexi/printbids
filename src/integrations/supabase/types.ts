@@ -206,12 +206,44 @@ export type Database = {
         }
         Relationships: []
       }
+      founding_makers: {
+        Row: {
+          created_at: string
+          fee_free_hires_used: number
+          number: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          fee_free_hires_used?: number
+          number: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          fee_free_hires_used?: number
+          number?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "founding_makers_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hire_charges: {
         Row: {
           amount_cents: number
           bid_id: string
           created_at: string
+          customer_fee_cents: number
+          customer_payment_intent_id: string | null
           environment: string
+          fee_free: boolean
           job_id: string
           maker_id: string
           payment_intent_id: string | null
@@ -220,7 +252,10 @@ export type Database = {
           amount_cents: number
           bid_id: string
           created_at?: string
+          customer_fee_cents?: number
+          customer_payment_intent_id?: string | null
           environment: string
+          fee_free?: boolean
           job_id: string
           maker_id: string
           payment_intent_id?: string | null
@@ -229,7 +264,10 @@ export type Database = {
           amount_cents?: number
           bid_id?: string
           created_at?: string
+          customer_fee_cents?: number
+          customer_payment_intent_id?: string | null
           environment?: string
+          fee_free?: boolean
           job_id?: string
           maker_id?: string
           payment_intent_id?: string | null
@@ -505,7 +543,20 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      award_job: { Args: { target_bid: string }; Returns: undefined }
+      award_job:
+        | { Args: { target_bid: string }; Returns: undefined }
+        | {
+            Args: { target_bid: string; use_fee_free: boolean }
+            Returns: undefined
+          }
+      founding_numbers: {
+        Args: { ids: string[] }
+        Returns: {
+          number: number
+          user_id: string
+        }[]
+      }
+      founding_spots_left: { Args: never; Returns: number }
       hire_bid: { Args: { bid_id: string }; Returns: undefined }
       in_atlanta_area: { Args: { area: string }; Returns: boolean }
       is_admin: { Args: never; Returns: boolean }

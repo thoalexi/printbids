@@ -38,3 +38,5 @@ export const generateQuestions = createServerFn({method:'POST'}).middleware([req
  if(!text)throw new Error('AI returned no questions');const parsed=z.object({questions:z.array(z.string().min(3).max(500)).length(3)}).parse(JSON.parse(text));
  const saved=await context.supabase.from('job_details').update({technical_questions:parsed.questions}).eq('job_id',job.id);if(saved.error)throw saved.error;return parsed.questions;
 });
+export const foundingSpots = createServerFn({method:'GET'}).handler(async()=>{const r=await publicDb().rpc('founding_spots_left'); return r.data??0;});
+export const foundingSpotsQuery = { queryKey: ['founding-spots'], queryFn: () => foundingSpots() };
