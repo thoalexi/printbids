@@ -15,6 +15,13 @@
       "when": 1791568576358,
       "tag": "0001_atlanta_launch_and_security",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791569228877,
+      "tag": "0002_allow_design_photos",
+      "breakpoints": true
     }
   ]
 }
