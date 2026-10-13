@@ -11,3 +11,4 @@
 - [x] Payments: maker card hold on bid, 10% success fee on Hire, $5 verification fee (needs built-in Stripe enabled)
 - [x] Landing page redesign: calmer hero, single image, trust line, How it works, recent jobs preview; filters move to /browse; header 'Get verified'
 - [x] Marketplace UX: posting fixes, bidding side-by-side + one-step bid, guided hire, auto-shared maker contact
+- [x] Service type (Printing/Design/Both) separate from categories
