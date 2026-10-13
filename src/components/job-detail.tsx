@@ -155,7 +155,7 @@ function BidForm({ job, detail, jobId, userId, questions, verification, onDone, 
   const startCard = useServerFn(startBidCard);
   const [checkout, setCheckout] = useState(false);
   const saved: Record<string, string> = (() => { try { return JSON.parse(localStorage.getItem(draftKey(jobId)) ?? '{}'); } catch { return {}; } })();
-  const [itemized, setItemized] = useState(saved['mode'] !== 'total');
+  const [itemized, setItemized] = useState(saved['mode'] === 'items');
   const [amounts, setAmounts] = useState<Record<string, string>>(saved);
   const [photos, setPhotos] = useState<File[]>([]);
   const [busy, setBusy] = useState(false);
@@ -192,7 +192,7 @@ function BidForm({ job, detail, jobId, userId, questions, verification, onDone, 
     <p className="text-sm border-l-2 border-primary pl-3">{job.service === '3D Design' ? "You're bidding to create a digital 3D model — no printing." : job.service === 'Design + Printing' ? 'Your bid should cover both the design and the print.' : job.service === '3D Printing' ? "You're bidding to print this item." : 'Check the brief to see whether design, printing or both are needed.'}</p>
     <p className="text-xs text-muted-foreground">Only you and the customer can see your bid. Bid for free — you only pay a 5% fee (min $1) if you're hired.</p>
     <FoundingNote />
-    <div className="flex gap-2"><Button type="button" size="sm" variant={itemized ? 'default' : 'outline'} onClick={() => setItemized(true)}>Itemize</Button><Button type="button" size="sm" variant={itemized ? 'outline' : 'default'} onClick={() => setItemized(false)}>Total only</Button></div>
+    <div className="flex gap-2"><Button type="button" size="sm" variant={itemized ? 'outline' : 'default'} onClick={() => setItemized(false)}>Total only</Button><Button type="button" size="sm" variant={itemized ? 'default' : 'outline'} onClick={() => setItemized(true)}>Itemize</Button></div>
     {itemized ? <>{([['materials', 'Material cost'], ['printing', 'Print / machine time'], ['post_processing', 'Post-processing'], ['design', 'Design / modeling'], ['shipping', 'Delivery']] as const).map(([name, label]) => <label key={name}>{label} · optional (USD)<input className="field" name={name} type="number" min={0} step="0.01" defaultValue={val(name)} /></label>)}<p className="text-sm flex justify-between border-t border-border pt-3"><span>Total</span><span className="text-primary">{money(sum)}</span></p></>
       : <label>Bid total (USD)<input className="field" name="total" type="number" min={1} step="0.01" required defaultValue={val('total')} /></label>}
     <label>Turnaround (days)<input className="field" name="lead_days" type="number" min={1} step={1} required defaultValue={val('lead_days')} /></label>
