@@ -1,14 +1,17 @@
-# Keep "Job at a glance" visible while bidding
+# Move "Job at a glance" to the left and keep it in view
 
 ## Problem
-On the job page, the "Job at a glance" summary sits above the bid form in the same column, so it scrolls away as the maker scrolls down to fill in their bid.
+On the job page, the "Job at a glance" summary sits above the bid form in the right-hand column, so it scrolls away as the maker scrolls down to fill in their bid.
 
 ## Fix
-In `src/components/job-detail.tsx`, make the "Job at a glance" card stick to the top of the screen on desktop while the rest of the column (bid form) scrolls beneath it:
+In `src/components/job-detail.tsx`, rearrange the desktop layout:
 
-- Add `sticky top-20 self-start` to the card wrapper so it stays pinned below the header while scrolling.
-- On mobile (single column), leave the layout as-is — the summary already appears above the form, and sticking it would cover the form.
+- **Left column (narrow, ~340px):** the "Job at a glance" card, pinned with `sticky top-6 self-start` so it stays in view while the rest of the page scrolls.
+- **Right column (main):** the job title, brief, files, technical details, and below them the bid form — so the maker reads the brief and scrolls straight into bidding, with the summary always visible on the left.
+- On mobile (single column), "Job at a glance" appears once at the top, followed by the brief and the bid form — no sticking, nothing overlapping.
+
+The bids section, hire flow, and everything else on the page stay unchanged.
 
 ## Verification
-- Open a job page as a maker at desktop width: scroll the bid form — the summary stays in view.
-- Check at phone width: summary appears once above the form, nothing overlaps or scrolls oddly.
+- Desktop: open a job as a maker, scroll through the bid form — the summary stays pinned on the left.
+- Phone width (~375px): summary appears once at top, form below, no overlap or horizontal scroll.
