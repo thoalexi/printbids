@@ -5,7 +5,7 @@ import { Plus, X, Upload, ArrowRight, Sparkles, Check, FileBox } from 'lucide-re
 import { Button, buttonVariants } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { generateQuestions } from '@/lib/jobs.functions';
-import { materialChoices, technologies, launchAreas, categories, fileStatuses, purposes, finishes, deliveries } from '@/lib/printbids';
+import { materialChoices, technologies, launchAreas, categories, fileStatuses, purposes, finishes, deliveries, categoryHints, finishHints } from '@/lib/printbids';
 
 const ACCEPTED = '.stl,.step,.stp,.3mf,.obj,.zip,.jpg,.jpeg,.png,.webp,.pdf,.svg,.dxf,image/*';
 const OK_NAME = /\.(stl|step|stp|3mf|obj|zip|jpg|jpeg|png|webp|pdf|svg|dxf)$/i;
@@ -24,6 +24,8 @@ export function PostJob({ userId }: { userId: string }) {
   const [files, setFiles] = useState<File[]>([]);
   const [fileStatus, setFileStatus] = useState<string>(fileStatuses[0] ?? 'Yes');
   const [pickColor, setPickColor] = useState(false);
+  const [category, setCategory] = useState(categories[0] ?? '');
+  const [finish, setFinish] = useState('');
   const needsDesign = fileStatus === 'No, I need it designed';
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -166,11 +168,12 @@ export function PostJob({ userId }: { userId: string }) {
           </label>
           <label>
             Category
-            <select name="category" className="field" required>
+            <select name="category" className="field" required value={category} onChange={e => setCategory(e.target.value)}>
               {categories.map(c => (
                 <option key={c}>{c}</option>
               ))}
             </select>
+            <span className="block text-xs text-muted-foreground font-normal mt-1.5">{categoryHints[category]}</span>
           </label>
           <label>
             Approximate dimensions · optional
@@ -193,7 +196,10 @@ export function PostJob({ userId }: { userId: string }) {
             </label>
             <label>
               Budget · optional (USD)
-              <input className="field" type="number" name="budget" min={0} placeholder="No fixed budget" />
+              <span className="relative block">
+                <span aria-hidden className="absolute left-3 top-1/2 -translate-y-1/2 mt-[3.5px] text-muted-foreground">$</span>
+                <input className="field" style={{ paddingLeft: 26 }} type="text" inputMode="numeric" pattern="[0-9]{1,6}" title="Whole dollars, e.g. 75" name="budget" maxLength={6} placeholder="No fixed budget" />
+              </span>
             </label>
           </div>
           <label>
@@ -215,11 +221,13 @@ export function PostJob({ userId }: { userId: string }) {
             </label>
             <label>
               Finish
-              <select name="finish" className="field">
+              <select name="finish" className="field" required value={finish} onChange={e => setFinish(e.target.value)}>
+                <option value="" disabled>Select your preferred finish</option>
                 {finishes.map(v => (
                   <option key={v}>{v}</option>
                 ))}
               </select>
+              {finish && <span className="block text-xs text-muted-foreground font-normal mt-1.5">{finishHints[finish]}</span>}
             </label>
           </div>
           <div className="grid sm:grid-cols-2 gap-5">

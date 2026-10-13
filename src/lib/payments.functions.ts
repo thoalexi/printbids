@@ -24,7 +24,7 @@ const bidInput = z.object({
   jobId: z.string().uuid(), sessionId: z.string().regex(/^cs_[A-Za-z0-9_]+$/), environment: env,
   itemized: z.boolean(), total: z.number().min(0).max(1e7), materials: z.number().min(0).max(1e7), printing: z.number().min(0).max(1e7), post_processing: z.number().min(0).max(1e7), design: z.number().min(0).max(1e7), shipping: z.number().min(0).max(1e7),
   lead_days: z.number().int().min(1).max(3650), technology: z.string().max(40), material: z.string().max(80), offers: z.enum(['Pickup', 'Delivery', 'Pickup or delivery']),
-  links: z.array(z.string().url().max(500)).max(10), photos: z.array(z.string().max(500)).max(6), notes: z.string().max(3000), answers: z.array(z.string().max(500)).max(5),
+  links: z.array(z.string().url().max(500)).max(10), photos: z.array(z.string().max(500)).max(6), notes: z.string().max(3000), answers: z.array(z.string().max(500)).max(5), contact_email: z.string().email().max(320), contact_phone: z.string().max(50),
 });
 /** Places a sealed bid after the maker's card was saved. */
 export const placeBid = createServerFn({ method: 'POST' }).middleware([requireSupabaseAuth])
@@ -41,10 +41,13 @@ export const placeBid = createServerFn({ method: 'POST' }).middleware([requireSu
       customer = typeof s.customer === 'string' ? s.customer : s.customer?.id ?? '';
     } catch (e) { return { error: getStripeErrorMessage(e) }; }
     const { supabaseAdmin } = await import('@/integrations/supabase/client.server');
-    const { sessionId: _s, environment, jobId, ...bid } = data;
+    const { sessionId: _s, environment, jobId, contact_email, contact_phone, ...bid } = data;
+    const existing = await supabaseAdmin.from('bids').select('id').eq('job_id', jobId).eq('maker_id', context.userId).maybeSingle();
+    if (existing.data) return { ok: true as const };
     const r = await supabaseAdmin.from('bids').insert({ ...bid, job_id: jobId, maker_id: context.userId }).select('id').single();
     if (r.error) return { error: r.error.message };
     await supabaseAdmin.from('bid_cards').insert({ bid_id: r.data.id, maker_id: context.userId, job_id: jobId, environment, customer_id: customer, payment_method_id: pm });
+    await supabaseAdmin.from('bid_contacts').insert({ bid_id: r.data.id, maker_id: context.userId, email: contact_email, phone: contact_phone });
     // Opportunistically release cards on jobs whose needed-by date has passed.
     const { releaseCards } = await import('./stripe.server');
     const expired = await supabaseAdmin.from('jobs').select('id').lt('deadline', new Date().toISOString().slice(0, 10)).limit(200);
@@ -124,6 +127,8 @@ export const completeHire = createServerFn({ method: 'POST' }).middleware([requi
     }
     await supabaseAdmin.from('hire_charges').insert({ job_id: h.job.id, bid_id: bidId, maker_id: h.bid.maker_id, amount_cents: makerFee, payment_intent_id: makerPi, customer_fee_cents: customerFee, customer_payment_intent_id: customerPi, fee_free: feeFree, environment: data.environment });
     await supabaseAdmin.from('bid_cards').update({ status: feeFree ? 'released' : 'charged' }).eq('bid_id', bidId);
+    const bc = await supabaseAdmin.from('bid_contacts').select('email,phone').eq('bid_id', bidId).maybeSingle();
+    if (bc.data) await supabaseAdmin.from('contact_cards').upsert({ job_id: h.job.id, user_id: h.bid.maker_id, side: 'maker', email: bc.data.email, phone: bc.data.phone }, { onConflict: 'job_id,side', ignoreDuplicates: true });
     const others = await supabaseAdmin.from('bid_cards').select('bid_id,payment_method_id,environment').eq('job_id', h.job.id).eq('status', 'saved');
     await releaseCards(others.data ?? []);
     return { ok: true as const, customerFeeCents: customerFee };

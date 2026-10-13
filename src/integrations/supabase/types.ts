@@ -55,6 +55,38 @@ export type Database = {
           },
         ]
       }
+      bid_contacts: {
+        Row: {
+          bid_id: string
+          created_at: string
+          email: string
+          maker_id: string
+          phone: string
+        }
+        Insert: {
+          bid_id: string
+          created_at?: string
+          email: string
+          maker_id: string
+          phone?: string
+        }
+        Update: {
+          bid_id?: string
+          created_at?: string
+          email?: string
+          maker_id?: string
+          phone?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bid_contacts_bid_id_fkey"
+            columns: ["bid_id"]
+            isOneToOne: true
+            referencedRelation: "bids"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bids: {
         Row: {
           answers: string[]
