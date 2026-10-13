@@ -7,7 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { JobImage } from './browse-jobs';
-import { money, firstName, bidTechnologies, feeCents, type Job } from '@/lib/printbids';
+import { money, firstName, bidTechnologies, feeCents, serviceLabel, isDesignOnly, type Job } from '@/lib/printbids';
 import { generateQuestions } from '@/lib/jobs.functions';
 import { placeBid, startBidCard, startHire, completeHire, foundingStatus } from '@/lib/payments.functions';
 import { useEffect, useRef } from 'react';
@@ -28,14 +28,16 @@ export const detailQuery = (id: string, userId: string) => ({
     const vc = await supabase.rpc('verified_customers');
     const mine = await supabase.from('verifications').select('*').eq('user_id', userId).maybeSingle();
     const fm = b.data.length ? await supabase.rpc('founding_numbers', { ids: b.data.map(x => x.maker_id) }) : { data: [] };
-    return { founding: new Map((fm.data ?? []).map(f => [f.user_id, f.number])), job: j.data, detail: d.data, bids: b.data, verified: new Set((vm.data ?? []).map(v => v.user_id)), verifiedCustomer: (vc.data ?? []).some(v => v.user_id === j.data.owner_id), myVerification: mine.data };
+    const ms = b.data.length ? await supabase.rpc('maker_services', { ids: b.data.map(x => x.maker_id) }) : { data: [] };
+    return { makerServices: new Map((ms.data ?? []).map(m => [m.user_id, m.services])), founding: new Map((fm.data ?? []).map(f => [f.user_id, f.number])), job: j.data, detail: d.data, bids: b.data, verified: new Set((vm.data ?? []).map(v => v.user_id)), verifiedCustomer: (vc.data ?? []).some(v => v.user_id === j.data.owner_id), myVerification: mine.data };
   },
 });
 
 function Spec({ k, v }: { k: string; v: string }) { return <div className="flex justify-between gap-4"><dt className="text-muted-foreground">{k}</dt><dd className="text-right">{v}</dd></div>; }
 
-export function JobSpecs({ job }: { job: Pick<Job, 'quantity' | 'deadline' | 'delivery' | 'region' | 'budget' | 'category' | 'dimensions' | 'file_status' | 'purpose' | 'finish' | 'color' | 'material' | 'technology'> }) {
-  return <dl className="text-sm space-y-4 mt-5">{([['Category', job.category], ['Quantity', `${job.quantity} ${job.quantity === 1 ? 'piece' : 'pieces'}`], ['Size', job.dimensions || 'Not given'], ['3D file', job.file_status], ["What it's for", job.purpose], ['Material', job.material], ['Technology', job.technology], ['Finish', job.finish], ['Color', job.color], ['Delivery', job.delivery], ['Location', job.region], ['Needed by', job.deadline], ['Budget', job.budget ? money(job.budget) : 'Open to bids']] as const).map(([k, v]) => <Spec key={k} k={k} v={v} />)}</dl>;
+export function JobSpecs({ job }: { job: Pick<Job, 'quantity' | 'deadline' | 'delivery' | 'region' | 'budget' | 'category' | 'dimensions' | 'file_status' | 'purpose' | 'finish' | 'color' | 'material' | 'technology' | 'service'> }) {
+  const d = isDesignOnly(job);
+  return <dl className="text-sm space-y-4 mt-5">{([['Service', serviceLabel(job.service)], ['Category', job.category], ['Quantity', `${job.quantity} ${job.quantity === 1 ? 'piece' : 'pieces'}`], ['Size', job.dimensions || 'Not given'], ['3D file', job.file_status], ["What it's for", job.purpose], ['Material', job.material], ['Technology', job.technology], ['Finish', job.finish], ['Color', job.color], ['Delivery', job.delivery], ['Location', job.region], ['Needed by', job.deadline], ['Budget', job.budget ? money(job.budget) : 'Open to bids']] as const).filter(([k]) => !d || !['Quantity', 'Material', 'Technology', 'Finish', 'Color', 'Delivery'].includes(k)).map(([k, v]) => <Spec key={k} k={k} v={v} />)}</dl>;
 }
 
 export function useFounding() {
@@ -62,7 +64,7 @@ export function JobDetail({ id, userId, cardSession, hireSession }: { id: string
   const generate = useServerFn(generateQuestions);
   if (error) return <main className="max-w-4xl mx-auto px-6 py-14"><h1 className="text-2xl">Job unavailable</h1><p className="text-muted-foreground mt-3">This job is private, awarded to another maker, or no longer available.</p><Button asChild className="mt-6"><Link to="/">Browse jobs</Link></Button></main>;
   if (!data) return <main className="p-16 text-center text-muted-foreground">Loading print job…</main>;
-  const { job, detail, bids, verified, verifiedCustomer, myVerification, founding } = data;
+  const { job, detail, bids, verified, verifiedCustomer, myVerification, founding, makerServices } = data;
   const owner = job.owner_id === userId;
   const ownBid = bids.find(b => b.maker_id === userId);
   const iAmVerified = myVerification?.status === 'approved';
@@ -80,7 +82,7 @@ export function JobDetail({ id, userId, cardSession, hireSession }: { id: string
     </div>}
     <div className="grid lg:grid-cols-[1fr_380px] gap-9">
       <div className={`min-w-0 ${bidding ? 'lg:sticky lg:top-6 lg:self-start lg:max-h-[calc(100vh-3rem)] lg:overflow-y-auto lg:pr-3' : ''}`}>
-        <div className="flex flex-wrap gap-2 mb-4 text-xs text-primary"><span>{job.category}</span>·<span>{job.material}</span>·<span className="capitalize">{job.status === 'awarded' ? 'Hired' : job.status}</span>{job.verified_only && <span className="text-success">· Verified Makers only</span>}</div>
+        <div className="flex flex-wrap gap-2 mb-4 text-xs text-primary"><span>{serviceLabel(job.service)}</span>·<span>{job.category}</span>·{!isDesignOnly(job) && <><span>{job.material}</span>·</>}<span className="capitalize">{job.status === 'awarded' ? 'Hired' : job.status}</span>{job.verified_only && <span className="text-success">· Verified Makers only</span>}</div>
         <h1 className="text-3xl font-semibold leading-tight">{job.title}</h1>
         <p className="text-sm text-muted-foreground mt-3 flex items-center gap-2">Posted by {firstName(job.owner_name)}{verifiedCustomer && <span className="text-success flex items-center gap-1"><BadgeCheck className="size-3.5" />Verified Customer</span>}</p>
         <JobImage job={job} className="h-64 rounded-md mt-7" />
@@ -126,17 +128,17 @@ export function JobDetail({ id, userId, cardSession, hireSession }: { id: string
       {owner && !bids.length && <p className="text-sm text-muted-foreground">No bids yet. Your job is ready for makers.</p>}
       {show('hire')}
       <Dialog open={!!hiring} onOpenChange={o => { if (!o) setHiring(null); }}><DialogContent className="max-h-[100dvh] overflow-y-auto sm:max-w-xl">{hiringBid && <HireSteps bid={hiringBid} />}{hiring && <EmbeddedPayment key={hiring} fetchClientSecret={async () => { const r = await begin({ data: { bidId: hiring, environment: getStripeEnvironment(), returnUrl: `${window.location.origin}/jobs/${id}?hire_session={CHECKOUT_SESSION_ID}` } }); if ('error' in r) { setHiring(null); setNotice({ kind: 'error', text: "We couldn't complete the hire. Please try again.", where: 'hire' }); throw new Error(r.error); } return r.clientSecret; }} />}</DialogContent></Dialog>
-      <div className="grid md:grid-cols-2 gap-5 mt-3">{bids.filter(b => owner || b.maker_id === userId).map(b => <BidCard key={b.id} bid={b} owner={owner} founding={founding.get(b.maker_id) ?? null} questions={detail.questions} verified={verified.has(b.maker_id)} canHire={owner && job.status === 'open' && !hiring} busy={busy} onHire={() => { setNotice(null); setHiring(b.id); }} />)}</div>
+      <div className="grid md:grid-cols-2 gap-5 mt-3">{bids.filter(b => owner || b.maker_id === userId).map(b => <BidCard key={b.id} bid={b} owner={owner} founding={founding.get(b.maker_id) ?? null} services={makerServices.get(b.maker_id) ?? []} questions={detail.questions} verified={verified.has(b.maker_id)} canHire={owner && job.status === 'open' && !hiring} busy={busy} onHire={() => { setNotice(null); setHiring(b.id); }} />)}</div>
     </section>}
   </main>;
 }
 
 type Bid = { id: string; maker_id: string; maker_name: string; itemized: boolean; total: number; printing: number; materials: number; shipping: number; post_processing: number; design: number; lead_days: number; notes: string; answers: string[]; technology: string; material: string; offers: string; links: string[]; photos: string[] };
-function BidCard({ bid: b, owner, founding, questions, verified, canHire, busy, onHire }: { bid: Bid; owner: boolean; founding: number | null; questions: string[]; verified: boolean; canHire: boolean; busy: boolean; onHire: () => void }) {
+function BidCard({ bid: b, owner, founding, services, questions, verified, canHire, busy, onHire }: { bid: Bid; owner: boolean; founding: number | null; services: string[]; questions: string[]; verified: boolean; canHire: boolean; busy: boolean; onHire: () => void }) {
   const fee = feeCents(Number(b.total)) / 100;
   const line = (label: string, v: number) => <span key={label}>{label} {b.itemized ? money(v) : '–'}</span>;
   return <article className="bg-card border border-border rounded-md p-6 min-w-0">
-    <div className="flex justify-between gap-3"><div><h3 className="font-semibold">{firstName(b.maker_name || 'Maker')}</h3><div className="flex flex-wrap gap-x-3 gap-y-1 mt-2">{verified && <span className="text-success text-xs flex gap-1 items-center"><BadgeCheck className="size-3" />Verified Maker</span>}{founding && <FoundingBadge number={founding} />}</div></div><span className="text-xl text-primary">{money(Number(b.total))}</span></div>
+    <div className="flex justify-between gap-3"><div><h3 className="font-semibold">{firstName(b.maker_name || 'Maker')}</h3><div className="flex flex-wrap gap-x-3 gap-y-1 mt-2">{verified && <span className="text-success text-xs flex gap-1 items-center"><BadgeCheck className="size-3" />Verified Maker</span>}{founding && <FoundingBadge number={founding} />}</div>{services.length > 0 && <p className="text-xs text-muted-foreground mt-1">Offers: {services.join(', ')}</p>}</div><span className="text-xl text-primary">{money(Number(b.total))}</span></div>
     {owner && <p className="text-xs text-muted-foreground mt-3">{money(Number(b.total))} bid + {money(fee)} service fee = <span className="text-foreground">{money(Number(b.total) + fee)} total</span></p>}
     <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-muted-foreground mt-5">{line('Materials', b.materials)}{line('Print time', b.printing)}{line('Post-processing', b.post_processing)}{line('Design', b.design)}{line('Delivery', b.shipping)}</div>
     <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs mt-3"><span>{b.lead_days} day turnaround</span>{b.technology && <span>{b.technology}</span>}{b.material && <span>{b.material}</span>}<span>{b.offers}</span></div>
@@ -189,6 +191,7 @@ function BidForm({ job, detail, jobId, userId, questions, verification, onDone, 
   }}>
     <details className="lg:hidden border border-border rounded-md bg-card"><summary className="cursor-pointer p-4 text-sm font-semibold">Project details</summary><div className="px-4 pb-4 text-sm"><p className="font-medium">{job.title}</p><p className="text-muted-foreground whitespace-pre-wrap mt-2">{detail.description}</p><JobSpecs job={job} />{detail.technical_questions.map((q, i) => <p key={q} className="text-xs text-muted-foreground mt-3">{q}<br /><span className="text-foreground">{detail.technical_answers[i]}</span></p>)}</div></details>
     <h2 className="text-lg font-semibold">Place your sealed bid</h2>
+    <p className="text-sm border-l-2 border-primary pl-3">{job.service === '3D Design' ? "You're bidding to create a digital 3D model — no printing." : job.service === 'Design + Printing' ? 'Your bid should cover both the design and the print.' : job.service === '3D Printing' ? "You're bidding to print this item." : 'Check the brief to see whether design, printing or both are needed.'}</p>
     <p className="text-xs text-muted-foreground">Only you and the customer can see your bid. Bid for free — you only pay a 5% fee (min $1) if you're hired.</p>
     <FoundingNote />
     <div className="flex gap-2"><Button type="button" size="sm" variant={itemized ? 'default' : 'outline'} onClick={() => setItemized(true)}>Itemize</Button><Button type="button" size="sm" variant={itemized ? 'outline' : 'default'} onClick={() => setItemized(false)}>Total only</Button></div>

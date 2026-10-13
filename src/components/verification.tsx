@@ -45,10 +45,11 @@ export function Verification({ sessionId }: { sessionId?: string | undefined }) 
           if (links.some(v => { try { return new URL(v).protocol !== 'https:'; } catch { return true; } })) throw new Error('Links must be full https:// addresses.');
           if (files.length < 3 || files.length > 10) throw new Error('Add 3 to 10 photos of finished prints.');
           const supported = f.getAll('materials').map(String);
+          const offered = f.getAll('services').map(String).filter(v => v === '3D Printing' || v === '3D Design');
           if (!supported.length) throw new Error('Select at least one material you offer.');
           const paths: string[] = [];
           for (const file of files) { if (!file.type.startsWith('image/') || file.size > 10 * 1024 * 1024) throw new Error('Photos must be images under 10 MB.'); const path = `${user.id}/portfolio/${crypto.randomUUID()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`; const r = await supabase.storage.from('print-files').upload(path, file); if (r.error) throw r.error; paths.push(path); }
-          const r = await supabase.from('verifications').insert({ user_id: user.id, shop_name: String(f.get('shop') ?? '').trim().slice(0, 120), printer_specs: String(f.get('specs')), materials: supported, photos: paths, links, service_area: String(f.get('area')) });
+          const r = await supabase.from('verifications').insert({ user_id: user.id, shop_name: String(f.get('shop') ?? '').trim().slice(0, 120), printer_specs: String(f.get('specs')), materials: supported, photos: paths, links, service_area: String(f.get('area')), services: offered });
           if (r.error) throw r.error;
           await supabase.from('profiles').update({ printer_specs: String(f.get('specs')), materials: supported, links }).eq('id', user.id);
           await refetch();
@@ -57,6 +58,7 @@ export function Verification({ sessionId }: { sessionId?: string | undefined }) 
         <label>Business or shop name · optional<input className="field" name="shop" maxLength={120} /></label>
         <label>Atlanta-area service location<select name="area" className="field">{launchAreas.map(area => <option key={area}>{area}</option>)}</select></label>
         <label>Printers and technologies you own<textarea className="field min-h-32" name="specs" required minLength={20} maxLength={5000} placeholder="e.g. 2× Bambu X1C (FDM), 1× Elegoo Saturn (resin), build volumes, quality checks" /></label>
+        <div><label className="mb-3">Services I offer</label><div className="flex flex-wrap gap-5">{['3D Printing', '3D Design'].map(v => <label key={v} className="flex gap-2 items-center font-normal"><input type="checkbox" name="services" value={v} />{v === '3D Design' ? '3D Design / modeling' : v}</label>)}</div></div>
         <div><label className="mb-3">Materials you offer</label><div className="grid grid-cols-2 sm:grid-cols-3 gap-3">{printMaterials.map(m => <label key={m} className="flex gap-2 items-center font-normal"><input type="checkbox" name="materials" value={m} />{m}</label>)}</div></div>
         <label>Photos of finished prints · 3 to 10<input className="field" type="file" multiple accept="image/*" required onChange={e => setFiles(Array.from(e.target.files ?? []))} /></label>
         {files.length > 0 && <p className="text-xs text-muted-foreground -mt-4">{files.length} photo{files.length === 1 ? '' : 's'} selected</p>}
