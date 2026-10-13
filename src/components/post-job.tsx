@@ -198,7 +198,7 @@ export function PostJob({ userId }: { userId: string }) {
               Budget · optional (USD)
               <span className="relative block">
                 <span aria-hidden className="absolute left-3 top-1/2 -translate-y-1/2 mt-[3.5px] text-muted-foreground">$</span>
-                <input className="field pl-7" type="text" inputMode="numeric" pattern="[0-9]{1,6}" title="Whole dollars, e.g. 75" name="budget" maxLength={6} placeholder="No fixed budget" />
+                <input className="field" style={{ paddingLeft: 26 }} type="text" inputMode="numeric" pattern="[0-9]{1,6}" title="Whole dollars, e.g. 75" name="budget" maxLength={6} placeholder="No fixed budget" />
               </span>
             </label>
           </div>

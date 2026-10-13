@@ -55,7 +55,7 @@ export function JobDetail({ id, userId, cardSession, hireSession }: { id: string
   const ran = useRef(false);
   useEffect(() => {
     if (!hireSession || ran.current) return; ran.current = true;
-    void (async () => { setBusy(true); try { const r = await finish({ data: { sessionId: hireSession, environment: getStripeEnvironment() } }); if ('error' in r) setNotice({ kind: 'error', text: "We couldn't complete the hire. Please try again.", where: 'hire' }); else setHired(r.customerFeeCents); await refetch(); } catch { setNotice({ kind: 'error', text: "We couldn't complete the hire. Please try again.", where: 'hire' }); } finally { setBusy(false); window.history.replaceState(null, '', `/jobs/${id}`); } })();
+    void (async () => { setBusy(true); try { const r = await finish({ data: { sessionId: hireSession, environment: getStripeEnvironment() } }); if ('error' in r) setNotice({ kind: 'error', text: "We couldn't complete the hire. Please try again.", where: 'hire' }); else setHired(r.customerFeeCents); await refetch(); window.scrollTo({ top: 0 }); } catch { setNotice({ kind: 'error', text: "We couldn't complete the hire. Please try again.", where: 'hire' }); } finally { setBusy(false); window.history.replaceState(null, '', `/jobs/${id}`); } })();
   }, [hireSession]);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<{ kind: 'ok' | 'error'; text: string; where: string } | null>(null);
@@ -66,14 +66,20 @@ export function JobDetail({ id, userId, cardSession, hireSession }: { id: string
   const owner = job.owner_id === userId;
   const ownBid = bids.find(b => b.maker_id === userId);
   const iAmVerified = myVerification?.status === 'approved';
+  const bidding = !owner && !ownBid && job.status === 'open' && job.bid_count < 5 && (!job.verified_only || iAmVerified);
   const canSeeFiles = owner || job.awarded_maker === userId || !job.verified_only || iAmVerified;
+  const hiringBid = bids.find(b => b.id === hiring);
   const show = (where: string) => notice?.where === where && <p role={notice.kind === 'error' ? 'alert' : 'status'} className={`text-sm ${notice.kind === 'error' ? 'text-destructive' : 'text-primary'}`}>{notice.text}</p>;
   const run = async (where: string, fn: () => Promise<void>, ok?: string) => { setBusy(true); setNotice(null); try { await fn(); await refetch(); if (ok) setNotice({ kind: 'ok', text: ok, where }); } catch (e) { setNotice({ kind: 'error', text: errText(e), where }); } finally { setBusy(false); } };
 
   return <main className="max-w-6xl mx-auto px-6 py-10">
     <Link to="/browse" className="text-muted-foreground text-xs flex gap-2 items-center mb-7"><ArrowLeft className="size-3" />Back to print jobs</Link>
-    <div className="grid lg:grid-cols-[1fr_340px] gap-9">
-      <div className="min-w-0">
+    {job.status === 'awarded' && (owner || job.awarded_maker === userId) && <div id="hire-next" className="mb-9">
+      {hired !== null && <div role="status" className="border border-primary/50 bg-primary/10 rounded-md p-6 mb-2"><h2 className="text-xl font-semibold">You've hired your maker!</h2><p className="text-sm text-muted-foreground mt-2">Your {money(hired / 100)} service fee is confirmed. Next: add your pickup or delivery details below — your maker's contact details appear right next to them. You pay the maker for the print directly at pickup or delivery.</p></div>}
+      <ContactCard job={job} userId={userId} />
+    </div>}
+    <div className="grid lg:grid-cols-[1fr_380px] gap-9">
+      <div className={`min-w-0 ${bidding ? 'lg:sticky lg:top-6 lg:self-start lg:max-h-[calc(100vh-3rem)] lg:overflow-y-auto lg:pr-3' : ''}`}>
         <div className="flex flex-wrap gap-2 mb-4 text-xs text-primary"><span>{job.category}</span>·<span>{job.material}</span>·<span className="capitalize">{job.status === 'awarded' ? 'Hired' : job.status}</span>{job.verified_only && <span className="text-success">· Verified Makers only</span>}</div>
         <h1 className="text-3xl font-semibold leading-tight">{job.title}</h1>
         <p className="text-sm text-muted-foreground mt-3 flex items-center gap-2">Posted by {firstName(job.owner_name)}{verifiedCustomer && <span className="text-success flex items-center gap-1"><BadgeCheck className="size-3.5" />Verified Customer</span>}</p>
@@ -103,7 +109,6 @@ export function JobDetail({ id, userId, cardSession, hireSession }: { id: string
           {show('edit')}
         </form>}
 
-        {job.status === 'awarded' && (owner || job.awarded_maker === userId) && <ContactCard job={job} userId={userId} />}
       </div>
 
       <aside className="min-w-0">
@@ -111,7 +116,7 @@ export function JobDetail({ id, userId, cardSession, hireSession }: { id: string
         {owner && job.bid_count > 0 && job.status === 'open' && <p className="text-xs text-muted-foreground mt-4">Editing is locked because bidding has started.</p>}
         {!owner && !ownBid && job.status === 'open' && job.bid_count < 5 && (job.verified_only && !iAmVerified
           ? <div className="mt-6 border border-border rounded-md p-5 text-sm"><p>This job is open to Verified Makers only.</p><Button asChild variant="outline" size="sm" className="mt-4"><Link to="/verify">Become a Verified Maker</Link></Button></div>
-          : <BidForm jobId={id} userId={userId} cardSession={cardSession} questions={detail.questions} verification={iAmVerified ? myVerification : null} onDone={() => void refetch()} />)}
+          : <BidForm job={job} detail={detail} jobId={id} userId={userId} cardSession={cardSession} questions={detail.questions} verification={iAmVerified ? myVerification : null} onDone={() => void refetch()} />)}
         {!owner && job.status === 'open' && <ReportJob jobId={id} userId={userId} />}
       </aside>
     </div>
@@ -120,8 +125,7 @@ export function JobDetail({ id, userId, cardSession, hireSession }: { id: string
       <h2 className="text-xl font-semibold mb-5">{owner ? 'Maker bids' : 'Your sealed bid'}</h2>
       {owner && !bids.length && <p className="text-sm text-muted-foreground">No bids yet. Your job is ready for makers.</p>}
       {show('hire')}
-      {hired !== null && <p role="status" className="text-sm text-primary mb-3">You've hired your maker. Your {money(hired / 100)} service fee was charged. Add your details in the contact card above.</p>}
-      {hiring && <div className="space-y-3 mb-5"><p className="text-sm">Pay your service fee to complete the hire.</p><EmbeddedPayment key={hiring} fetchClientSecret={async () => { const r = await begin({ data: { bidId: hiring, environment: getStripeEnvironment(), returnUrl: `${window.location.origin}/jobs/${id}?hire_session={CHECKOUT_SESSION_ID}` } }); if ('error' in r) { setHiring(null); setNotice({ kind: 'error', text: "We couldn't complete the hire. Please try again.", where: 'hire' }); throw new Error(r.error); } return r.clientSecret; }} /><Button variant="ghost" size="sm" onClick={() => setHiring(null)}>Cancel</Button></div>}
+      <Dialog open={!!hiring} onOpenChange={o => { if (!o) setHiring(null); }}><DialogContent className="max-h-[100dvh] overflow-y-auto sm:max-w-xl">{hiringBid && <HireSteps bid={hiringBid} />}{hiring && <EmbeddedPayment key={hiring} fetchClientSecret={async () => { const r = await begin({ data: { bidId: hiring, environment: getStripeEnvironment(), returnUrl: `${window.location.origin}/jobs/${id}?hire_session={CHECKOUT_SESSION_ID}` } }); if ('error' in r) { setHiring(null); setNotice({ kind: 'error', text: "We couldn't complete the hire. Please try again.", where: 'hire' }); throw new Error(r.error); } return r.clientSecret; }} />}</DialogContent></Dialog>
       <div className="grid md:grid-cols-2 gap-5 mt-3">{bids.filter(b => owner || b.maker_id === userId).map(b => <BidCard key={b.id} bid={b} owner={owner} founding={founding.get(b.maker_id) ?? null} questions={detail.questions} verified={verified.has(b.maker_id)} canHire={owner && job.status === 'open' && !hiring} busy={busy} onHire={() => { setNotice(null); setHiring(b.id); }} />)}</div>
     </section>}
   </main>;
@@ -146,7 +150,7 @@ function BidCard({ bid: b, owner, founding, questions, verified, canHire, busy, 
 
 type Verification = { materials: string[]; links: string[]; photos: string[] } | null;
 const draftKey = (jobId: string) => `printbids-bid-${jobId}`;
-function BidForm({ jobId, userId, questions, verification, onDone, cardSession }: { jobId: string; userId: string; questions: string[]; verification: Verification; onDone: () => void; cardSession?: string | undefined }) {
+function BidForm({ job, detail, jobId, userId, questions, verification, onDone, cardSession }: { job: Job; detail: { description: string; technical_questions: string[]; technical_answers: string[] }; jobId: string; userId: string; questions: string[]; verification: Verification; onDone: () => void; cardSession?: string | undefined }) {
   const place = useServerFn(placeBid);
   const startCard = useServerFn(startBidCard);
   const [checkout, setCheckout] = useState(false);
@@ -156,9 +160,15 @@ function BidForm({ jobId, userId, questions, verification, onDone, cardSession }
   const [photos, setPhotos] = useState<File[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [placed, setPlaced] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
+  const auto = useRef(false);
+  useEffect(() => { if (cardSession && !auto.current && formRef.current) { auto.current = true; formRef.current.requestSubmit(); } }, [cardSession]);
   const sum = ['materials', 'printing', 'post_processing', 'design', 'shipping'].reduce((n, k) => n + (Number(amounts[k]) || 0), 0);
   const val = (k: string, fallback = '') => saved[k] ?? fallback;
-  return <form className="mt-6 space-y-4" onChange={e => { const f = new FormData(e.currentTarget); const o: Record<string, string> = { mode: itemized ? 'items' : 'total' }; f.forEach((v, k) => { if (typeof v === 'string') o[k] = v; }); setAmounts(o); sessionStorage.setItem(draftKey(jobId), JSON.stringify(o)); }} onSubmit={async e => {
+  const bidTotal = itemized ? sum : Number(amounts['total']) || 0;
+  if (placed) return <div role="status" className="mt-6 border border-primary/50 bg-primary/10 rounded-md p-6"><h2 className="text-lg font-semibold">Your bid is in!</h2><p className="text-sm text-muted-foreground mt-2">Your card is saved and nothing has been charged. We'll only charge the maker fee if the customer hires you.</p></div>;
+  return <form ref={formRef} className="mt-6 space-y-4" onChange={e => { const f = new FormData(e.currentTarget); const o: Record<string, string> = { mode: itemized ? 'items' : 'total' }; f.forEach((v, k) => { if (typeof v === 'string') o[k] = v; }); setAmounts(o); sessionStorage.setItem(draftKey(jobId), JSON.stringify(o)); }} onSubmit={async e => {
     e.preventDefault(); setBusy(true); setError('');
     const f = new FormData(e.currentTarget);
     try {
@@ -171,12 +181,13 @@ function BidForm({ jobId, userId, questions, verification, onDone, cardSession }
       const environment = getStripeEnvironment();
       if (!cardSession) { setCheckout(true); return; }
       const n = (k: string) => Number(f.get(k)) || 0;
-      const r = await place({ data: { jobId, sessionId: cardSession, environment, itemized, total: itemized ? 0 : n('total'), materials: itemized ? n('materials') : 0, printing: itemized ? n('printing') : 0, post_processing: itemized ? n('post_processing') : 0, design: itemized ? n('design') : 0, shipping: itemized ? n('shipping') : 0, lead_days: n('lead_days'), technology: String(f.get('technology')), material: String(f.get('material') ?? '').slice(0, 80), offers: String(f.get('offers')) as 'Pickup' | 'Delivery' | 'Pickup or delivery', links, photos: paths.length ? paths : (verification?.photos ?? []).slice(0, 6), notes: String(f.get('notes') ?? ''), answers: questions.map((_, i) => String(f.get(`q${i}`))) } });
+      const r = await place({ data: { jobId, sessionId: cardSession, environment, itemized, total: itemized ? 0 : n('total'), materials: itemized ? n('materials') : 0, printing: itemized ? n('printing') : 0, post_processing: itemized ? n('post_processing') : 0, design: itemized ? n('design') : 0, shipping: itemized ? n('shipping') : 0, lead_days: n('lead_days'), technology: String(f.get('technology')), material: String(f.get('material') ?? '').slice(0, 80), offers: String(f.get('offers')) as 'Pickup' | 'Delivery' | 'Pickup or delivery', links, photos: paths.length ? paths : (verification?.photos ?? []).slice(0, 6), notes: String(f.get('notes') ?? ''), answers: questions.map((_, i) => String(f.get(`q${i}`))), contact_email: String(f.get('contact_email') ?? '').trim(), contact_phone: String(f.get('contact_phone') ?? '').trim() } });
       if ('error' in r) throw new Error(r.error);
       sessionStorage.removeItem(draftKey(jobId)); sessionStorage.removeItem(photoKey);
-      onDone();
+      setPlaced(true); window.history.replaceState(null, '', `/jobs/${jobId}`); onDone();
     } catch (err) { setError(errText(err)); } finally { setBusy(false); }
   }}>
+    <details className="lg:hidden border border-border rounded-md bg-card"><summary className="cursor-pointer p-4 text-sm font-semibold">Project details</summary><div className="px-4 pb-4 text-sm"><p className="font-medium">{job.title}</p><p className="text-muted-foreground whitespace-pre-wrap mt-2">{detail.description}</p><JobSpecs job={job} />{detail.technical_questions.map((q, i) => <p key={q} className="text-xs text-muted-foreground mt-3">{q}<br /><span className="text-foreground">{detail.technical_answers[i]}</span></p>)}</div></details>
     <h2 className="text-lg font-semibold">Place your sealed bid</h2>
     <p className="text-xs text-muted-foreground">Only you and the customer can see your bid. Bid for free — you only pay a 5% fee (min $1) if you're hired.</p>
     <FoundingNote />
@@ -192,10 +203,14 @@ function BidForm({ jobId, userId, questions, verification, onDone, cardSession }
     {!photos.length && verification?.photos.length ? <p className="text-xs text-muted-foreground -mt-2">Your verified portfolio photos will be included.</p> : null}
     {questions.map((q, i) => <label key={q}>{q}<textarea className="field" name={`q${i}`} required maxLength={500} defaultValue={val(`q${i}`)} /></label>)}
     <label>Notes for the customer · optional<textarea className="field" name="notes" maxLength={3000} defaultValue={val('notes')} /></label>
+    <label>Business email for the customer<input className="field" name="contact_email" type="email" required maxLength={320} defaultValue={val('contact_email')} /></label>
+    <label>Phone · optional<input className="field" name="contact_phone" type="tel" maxLength={50} defaultValue={val('contact_phone')} /></label>
+    <p className="text-xs text-muted-foreground -mt-2">Shared with the customer only if they hire you.</p>
+    <div className="border border-border rounded-md p-4 text-xs text-muted-foreground space-y-1.5"><p className="text-foreground text-sm font-medium">About the fee</p><p>No charge now — you'll save a card with our payment partner.</p><p>If you're hired, we charge 5% of your bid (min $1){bidTotal > 0 ? <> — <span className="text-foreground">{money(feeCents(bidTotal) / 100)}</span> on this bid</> : null}. Founding Makers pay nothing on their first 5 hires.</p><p>If that charge fails, the hire doesn't go through. If you aren't hired, your card is released.</p></div>
     {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
-    {cardSession && <p className="text-xs text-primary">Card saved. You won't be charged unless you're hired.</p>}
-    {checkout && !cardSession ? <div className="space-y-3"><p className="text-sm">Save a card to place your bid. You're only charged the 5% maker fee (min $1) if the customer hires you.</p><EmbeddedPayment fetchClientSecret={async () => { const r = await startCard({ data: { jobId, environment: getStripeEnvironment(), returnUrl: `${window.location.origin}/jobs/${jobId}?card_session={CHECKOUT_SESSION_ID}` } }); if ('error' in r) throw new Error(r.error); return r.clientSecret; }} /></div>
-      : <Button className="w-full" disabled={busy}>{busy ? 'Submitting…' : cardSession ? 'Submit sealed bid' : 'Continue to save card'}<Plus /></Button>}
+    {cardSession && busy && <p role="status" className="text-xs text-primary">Card saved — placing your bid…</p>}
+    {checkout && !cardSession ? <div className="space-y-3"><p className="text-sm">Enter your card to finish. Your bid is placed automatically once the card is saved.</p><EmbeddedPayment fetchClientSecret={async () => { const r = await startCard({ data: { jobId, environment: getStripeEnvironment(), returnUrl: `${window.location.origin}/jobs/${jobId}?card_session={CHECKOUT_SESSION_ID}` } }); if ('error' in r) throw new Error(r.error); return r.clientSecret; }} /></div>
+      : <Button className="w-full" disabled={busy}>{busy ? 'Placing bid…' : cardSession ? 'Try placing bid again' : 'Save card & place bid'}<Plus /></Button>}
   </form>;
 }
 
@@ -263,4 +278,14 @@ function FoundingNote() {
   if (data.number) return <p className="text-xs text-primary">Founding Maker #{data.number} · {data.feeFreeLeft} of 5 fee-free hires left</p>;
   if (data.spotsLeft > 0) return <p className="text-xs text-primary">Founding Maker spots left: {data.spotsLeft} of 50</p>;
   return null;
+}
+
+function HireSteps({ bid }: { bid: Bid }) {
+  const total = Number(bid.total); const fee = feeCents(total) / 100;
+  return <><DialogHeader><DialogTitle>Hire {firstName(bid.maker_name || 'Maker')}</DialogTitle><DialogDescription>Review, then pay your service fee to confirm.</DialogDescription></DialogHeader>
+    <ol className="space-y-4 text-sm">
+      <li><p className="text-xs text-primary">1 · Your maker</p><p className="mt-1">{firstName(bid.maker_name || 'Maker')} · {bid.lead_days} day turnaround · {bid.offers}</p></li>
+      <li><p className="text-xs text-primary">2 · What you pay</p><p className="mt-1">{money(total)} bid + {money(fee)} service fee = <span className="font-semibold">{money(total + fee)} total</span></p><p className="text-xs text-muted-foreground mt-1">You pay {money(fee)} now. You pay the maker {money(total)} directly at pickup or delivery.</p></li>
+      <li><p className="text-xs text-primary">3 · Pay your service fee</p><p className="text-xs text-muted-foreground mt-1">Once it's confirmed, you'll see your maker's contact details right away.</p></li>
+    </ol></>;
 }
