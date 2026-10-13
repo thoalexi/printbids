@@ -5,7 +5,7 @@ import { Plus, X, Upload, ArrowRight, Sparkles, Check, FileBox } from 'lucide-re
 import { Button, buttonVariants } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { generateQuestions } from '@/lib/jobs.functions';
-import { materialChoices, technologies, launchAreas, categories, fileStatuses, purposes, finishes, deliveries, categoryHints, finishHints } from '@/lib/printbids';
+import { materialChoices, technologies, launchAreas, categories, purposes, finishes, deliveries, categoryHints, finishHints, services, serviceHints, fileChoices } from '@/lib/printbids';
 
 const ACCEPTED = '.stl,.step,.stp,.3mf,.obj,.zip,.jpg,.jpeg,.png,.webp,.pdf,.svg,.dxf,image/*';
 const OK_NAME = /\.(stl|step|stp|3mf|obj|zip|jpg|jpeg|png|webp|pdf|svg|dxf)$/i;
@@ -22,11 +22,13 @@ export function PostJob({ userId }: { userId: string }) {
   const [questions, setQuestions] = useState<string[]>([]);
   const [custom, setCustom] = useState<string[]>([]);
   const [files, setFiles] = useState<File[]>([]);
-  const [fileStatus, setFileStatus] = useState<string>(fileStatuses[0] ?? 'Yes');
+  const [service, setService] = useState('');
+  const [fileStatus, setFileStatus] = useState('');
+  const design = service === '3D Design';
   const [pickColor, setPickColor] = useState(false);
   const [category, setCategory] = useState(categories[0] ?? '');
   const [finish, setFinish] = useState('');
-  const needsDesign = fileStatus === 'No, I need it designed';
+  const needsDesign = service !== '' && service !== '3D Printing';
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [dragging, setDragging] = useState(false);
@@ -80,8 +82,8 @@ export function PostJob({ userId }: { userId: string }) {
           onSubmit={async e => {
             e.preventDefault();
             setError('');
-            if (!needsDesign && !files.length) {
-              setError('Add your 3D file, photo or sketch — or choose "No, I need it designed".');
+            if (!service || !fileStatus) {
+              setError('Choose what kind of help you need and whether you have a 3D model.');
               return;
             }
             setBusy(true);
@@ -95,20 +97,21 @@ export function PostJob({ userId }: { userId: string }) {
                     owner_id: userId,
                     title: String(f.get('title')),
                     summary: String(f.get('description')).slice(0, 160),
-                    quantity: Number(f.get('quantity')),
+                    quantity: design ? 1 : Number(f.get('quantity')),
+                    service,
                     deadline: String(f.get('deadline')),
                     budget: f.get('budget') ? Number(f.get('budget')) : null,
-                    technology: String(f.get('technology')),
-                    material: String(f.get('material')),
-                    fulfillment: String(f.get('delivery')) === 'Local pickup' ? 'Local pickup' : 'Shipping',
-                    delivery: String(f.get('delivery')),
+                    technology: design ? 'Any' : String(f.get('technology')),
+                    material: design ? 'Any' : String(f.get('material')),
+                    fulfillment: !design && String(f.get('delivery')) === 'Local pickup' ? 'Local pickup' : 'Shipping',
+                    delivery: design ? 'Either' : String(f.get('delivery')),
                     region: String(f.get('region')),
                     category: String(f.get('category')),
                     dimensions: String(f.get('dimensions') ?? '').slice(0, 200),
                     file_status: fileStatus,
-                    purpose: String(f.get('purpose')),
-                    finish: String(f.get('finish') ?? '') || 'No preference',
-                    color: pickColor ? String(f.get('color') ?? '').trim().slice(0, 80) || "Maker's choice" : "Maker's choice",
+                    purpose: String(f.get('purpose') ?? 'Prototype'),
+                    finish: design ? 'No preference' : String(f.get('finish') ?? '') || 'No preference',
+                    color: !design && pickColor ? String(f.get('color') ?? '').trim().slice(0, 80) || "Maker's choice" : "Maker's choice",
                     verified_only: f.get('verified_only') === 'on',
                     rights_confirmed: f.get('rights') === 'on',
                   })
@@ -145,6 +148,39 @@ export function PostJob({ userId }: { userId: string }) {
             }
           }}
         >
+          <fieldset>
+            <legend className="text-sm font-medium mb-3">What kind of help do you need?</legend>
+            <div className="grid sm:grid-cols-3 gap-3">
+              {services.map(sv => (
+                <label key={sv} className={`cursor-pointer rounded-md border p-4 font-normal transition-colors focus-within:ring-2 focus-within:ring-ring ${service === sv ? 'border-primary bg-primary/10' : 'border-border bg-card hover:border-primary/50'}`}>
+                  <input type="radio" name="service" value={sv} required className="sr-only" checked={service === sv} onChange={() => setService(sv)} />
+                  <span className="flex items-center justify-between text-sm font-semibold">{sv}{service === sv && <Check className="size-4 text-primary" />}</span>
+                  <span className="block text-xs mt-1">{serviceHints[sv]?.[0]}</span>
+                  <span className="block text-xs text-muted-foreground mt-1">{serviceHints[sv]?.[1]}</span>
+                </label>
+              ))}
+            </div>
+            {design && <p className="text-xs text-muted-foreground mt-3">You'll receive a digital 3D design file, not a printed item.</p>}
+            {service === 'Design + Printing' && <p className="text-xs text-muted-foreground mt-3">One maker handles both the design and the print.</p>}
+          </fieldset>
+          <fieldset>
+            <legend className="text-sm font-medium mb-3">Do you already have a 3D model or design file?</legend>
+            <div className="grid sm:grid-cols-3 gap-3">
+              {fileChoices.map(c => (
+                <label key={c.value} className={`cursor-pointer rounded-md border p-4 font-normal transition-colors focus-within:ring-2 focus-within:ring-ring ${fileStatus === c.value ? 'border-primary bg-primary/10' : 'border-border bg-card hover:border-primary/50'}`}>
+                  <input type="radio" name="file_choice" value={c.value} required className="sr-only" checked={fileStatus === c.value} onChange={() => setFileStatus(c.value)} />
+                  <span className="flex items-center justify-between text-sm font-semibold">{c.label}{fileStatus === c.value && <Check className="size-4 text-primary shrink-0" />}</span>
+                  <span className="block text-xs text-muted-foreground mt-1">{c.hint}</span>
+                </label>
+              ))}
+            </div>
+            {service === '3D Printing' && fileStatus && fileStatus !== 'Yes' && (
+              <div className="mt-3 rounded-md border border-border p-4 text-xs text-muted-foreground flex flex-wrap items-center gap-3">
+                <span className="grow">Without a 3D model, a maker may need to design it first. You can still post photos, links or a description.</span>
+                <Button type="button" size="sm" variant="outline" onClick={() => setService('Design + Printing')}>Switch to Design + Printing</Button>
+              </div>
+            )}
+          </fieldset>
           <label>
             Job title
             <input
@@ -180,10 +216,10 @@ export function PostJob({ userId }: { userId: string }) {
             <input className="field" name="dimensions" maxLength={200} placeholder="e.g. 10 × 6 × 4 cm, or about the size of a phone" />
           </label>
           <div className="grid sm:grid-cols-3 gap-5">
-            <label>
+            {!design && <label>
               Quantity
               <input className="field" type="number" name="quantity" required min={1} defaultValue={1} />
-            </label>
+            </label>}
             <label>
               Needed by
               <input
@@ -195,21 +231,14 @@ export function PostJob({ userId }: { userId: string }) {
               />
             </label>
             <label>
-              Budget · optional (USD)
+              {design ? 'Design budget' : service === 'Design + Printing' ? 'Total budget (design + print)' : 'Budget'} · optional (USD)
               <span className="relative block">
                 <span aria-hidden className="absolute left-3 top-1/2 -translate-y-1/2 mt-[3.5px] text-muted-foreground">$</span>
                 <input className="field" style={{ paddingLeft: 26 }} type="text" inputMode="numeric" pattern="[0-9]{1,6}" title="Whole dollars, e.g. 75" name="budget" maxLength={6} placeholder="No fixed budget" />
               </span>
             </label>
           </div>
-          <label>
-            Do you have a 3D file?
-            <select className="field" value={fileStatus} onChange={e => setFileStatus(e.target.value)}>
-              {fileStatuses.map(v => (
-                <option key={v}>{v}</option>
-              ))}
-            </select>
-          </label>
+          {!design && <>
           <div className="grid sm:grid-cols-2 gap-5">
             <label>
               What's it for?
@@ -263,6 +292,15 @@ export function PostJob({ userId }: { userId: string }) {
               </select>
             </label>
           </div>
+          </>}
+          {design && <label>
+            What will the design be used for?
+            <select name="purpose" className="field">
+              {purposes.map(v => (
+                <option key={v}>{v}</option>
+              ))}
+            </select>
+          </label>}
           <div
             onDragOver={e => {
               e.preventDefault();
@@ -279,7 +317,7 @@ export function PostJob({ userId }: { userId: string }) {
             }`}
           >
             <Upload className="size-6 text-primary mx-auto mb-3" />
-            <p className="text-sm font-medium">Add your 3D model, sketch or photo</p>
+            <p className="text-sm font-medium">Add your 3D model, sketch or photo · optional</p>
             <p className="text-xs text-foreground/60 mt-1 mb-4">
               Drag files here, or pick them from your computer
             </p>
@@ -329,14 +367,14 @@ export function PostJob({ userId }: { userId: string }) {
             </p>
           </div>
           <div className="grid sm:grid-cols-2 gap-5">
-            <label>
+            {!design && <label>
               Delivery
               <select className="field" name="delivery">
                 {deliveries.map(v => (
                   <option key={v}>{v}</option>
                 ))}
               </select>
-            </label>
+            </label>}
             <label>
               Atlanta-area location
               <select className="field" name="region" required>

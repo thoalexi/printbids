@@ -6,8 +6,16 @@ export const materialChoices = [...printMaterials,'Not sure — maker recommends
 export const materials = ['Any',...printMaterials];
 export const technologies = ['Any','FDM','SLA/Resin','SLS','Metal'];
 export const bidTechnologies = ['FDM','Resin','SLS','Other'];
-export const categories = ['Prototypes','Replacement & functional parts','Miniatures & tabletop','Cosplay & props','Home & decor','3D design/modeling help','Other / Not sure'];
-export const categoryHints: Record<string,string> = {'Prototypes':'Early product ideas and test versions','Replacement & functional parts':'Broken clips, knobs, brackets, handles, mounts','Miniatures & tabletop':'Figurines, game pieces, terrain','Cosplay & props':'Costume pieces, helmets, replica props','Home & decor':'Organizers, planters, decorations, gifts','3D design/modeling help':'You have an idea but no 3D file yet','Other / Not sure':"Doesn't fit the others — that's fine"};
+export const categories = ['Prototypes','Replacement & functional parts','Miniatures & tabletop','Cosplay & props','Home & decor','Other / Not sure'];
+/** Includes retired categories so older listings stay filterable. */
+export const allCategories = [...categories,'3D design/modeling help'];
+export const services = ['3D Printing','3D Design','Design + Printing'] as const;
+export const serviceHints: Record<string,[string,string]> = {'3D Printing':['I need something 3D printed.','I already have a design or file and need someone to make the physical item.'],'3D Design':['I need help creating a 3D design.','I have an idea, sketch, or reference images and need someone to create a 3D model.'],'Design + Printing':['I need both design and printing.','I need someone to help design my idea and then make the finished item.']};
+export const LEGACY_SERVICE = 'Service not specified';
+export const serviceLabel = (s?: string | null) => s || LEGACY_SERVICE;
+export const isDesignOnly = (j: { service?: string | null }) => j.service === '3D Design';
+export const fileChoices = [{value:'Yes',label:'Yes, I have a 3D model.',hint:'I have a file ready to share with a maker.'},{value:'No, I have photos or a sketch',label:'I have an idea, sketch, or reference images.',hint:'I need help turning my idea into a printable design.'},{value:'Not sure',label:"I'm not sure what I need.",hint:"I'd like a maker to help me figure it out."}];
+export const categoryHints: Record<string,string> = {'Prototypes':'Test a product idea or create an early version of a design.','Replacement & functional parts':'Broken clips, knobs, brackets, handles, or custom components.','Miniatures & tabletop':'Figurines, gaming miniatures, terrain, or display models.','Cosplay & props':'Costume pieces, accessories, replicas, or theatrical props.','Home & decor':'Organizers, decorations, household accessories, or personalized items.','Other / Not sure':"Something different, or you're unsure which category fits."};
 export const fileStatuses = ['Yes','No, I have photos or a sketch','No, I need it designed'];
 export const purposes = ['Display/decorative','Functional part','Prototype','Wearable or cosplay'];
 export const finishes = ['As printed','Supports removed and cleaned','Sanded','Primed','Painted','Not sure — maker recommends'];
