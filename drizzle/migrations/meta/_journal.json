@@ -57,6 +57,13 @@
       "when": 1791918337519,
       "tag": "0007_job_service_type",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1791918359821,
+      "tag": "0008_maker_services_rpc",
+      "breakpoints": true
     }
   ]
 }

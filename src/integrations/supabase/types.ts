@@ -598,6 +598,13 @@ export type Database = {
       hire_bid: { Args: { bid_id: string }; Returns: undefined }
       in_atlanta_area: { Args: { area: string }; Returns: boolean }
       is_admin: { Args: never; Returns: boolean }
+      maker_services: {
+        Args: { ids: string[] }
+        Returns: {
+          services: string[]
+          user_id: string
+        }[]
+      }
       remove_job: { Args: { target: string }; Returns: undefined }
       verified_customers: {
         Args: never
