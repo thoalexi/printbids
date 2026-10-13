@@ -115,16 +115,11 @@ export function JobDetail({ id, userId, cardSession, hireSession }: { id: string
           {show('edit')}
         </form>}
 
-      </div>
-
-      <aside className="min-w-0">
-        <div className="border border-border bg-card rounded-md p-6"><h2 className="text-sm font-semibold">Job at a glance</h2><JobSpecs job={job} /><div className="border-t border-border mt-6 pt-5 text-primary text-sm flex gap-2 items-center"><LockKeyhole className="size-4" />{job.bid_count} of 5 bids placed</div></div>
-        {owner && job.bid_count > 0 && job.status === 'open' && <p className="text-xs text-muted-foreground mt-4">Editing is locked because bidding has started.</p>}
         {!owner && !ownBid && job.status === 'open' && job.bid_count < 5 && (job.verified_only && !iAmVerified
-          ? <div className="mt-6 border border-border rounded-md p-5 text-sm"><p>This job is open to Verified Makers only.</p><Button asChild variant="outline" size="sm" className="mt-4"><Link to="/verify">Become a Verified Maker</Link></Button></div>
+          ? <div className="mt-8 border border-border rounded-md p-5 text-sm"><p>This job is open to Verified Makers only.</p><Button asChild variant="outline" size="sm" className="mt-4"><Link to="/verify">Become a Verified Maker</Link></Button></div>
           : <BidForm job={job} detail={detail} jobId={id} userId={userId} cardSession={cardSession} questions={detail.questions} verification={iAmVerified ? myVerification : null} onDone={() => void refetch()} />)}
         {!owner && job.status === 'open' && <ReportJob jobId={id} userId={userId} />}
-      </aside>
+      </div>
     </div>
 
     {(owner || ownBid) && <section className="border-t border-border mt-10 pt-8">
