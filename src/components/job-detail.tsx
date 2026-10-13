@@ -68,7 +68,6 @@ export function JobDetail({ id, userId, cardSession, hireSession }: { id: string
   const owner = job.owner_id === userId;
   const ownBid = bids.find(b => b.maker_id === userId);
   const iAmVerified = myVerification?.status === 'approved';
-  const bidding = !owner && !ownBid && job.status === 'open' && job.bid_count < 5 && (!job.verified_only || iAmVerified);
   const canSeeFiles = owner || job.awarded_maker === userId || !job.verified_only || iAmVerified;
   const hiringBid = bids.find(b => b.id === hiring);
   const show = (where: string) => notice?.where === where && <p role={notice.kind === 'error' ? 'alert' : 'status'} className={`text-sm ${notice.kind === 'error' ? 'text-destructive' : 'text-primary'}`}>{notice.text}</p>;
