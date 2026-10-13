@@ -68,7 +68,6 @@ export function JobDetail({ id, userId, cardSession, hireSession }: { id: string
   const owner = job.owner_id === userId;
   const ownBid = bids.find(b => b.maker_id === userId);
   const iAmVerified = myVerification?.status === 'approved';
-  const bidding = !owner && !ownBid && job.status === 'open' && job.bid_count < 5 && (!job.verified_only || iAmVerified);
   const canSeeFiles = owner || job.awarded_maker === userId || !job.verified_only || iAmVerified;
   const hiringBid = bids.find(b => b.id === hiring);
   const show = (where: string) => notice?.where === where && <p role={notice.kind === 'error' ? 'alert' : 'status'} className={`text-sm ${notice.kind === 'error' ? 'text-destructive' : 'text-primary'}`}>{notice.text}</p>;
@@ -80,8 +79,12 @@ export function JobDetail({ id, userId, cardSession, hireSession }: { id: string
       {hired !== null && <div role="status" className="border border-primary/50 bg-primary/10 rounded-md p-6 mb-2"><h2 className="text-xl font-semibold">You've hired your maker!</h2><p className="text-sm text-muted-foreground mt-2">Your {money(hired / 100)} service fee is confirmed. Next: add your pickup or delivery details below — your maker's contact details appear right next to them. You pay the maker for the print directly at pickup or delivery.</p></div>}
       <ContactCard job={job} userId={userId} />
     </div>}
-    <div className="grid lg:grid-cols-[1fr_380px] gap-9">
-      <div className={`min-w-0 ${bidding ? 'lg:sticky lg:top-6 lg:self-start lg:max-h-[calc(100vh-3rem)] lg:overflow-y-auto lg:pr-3' : ''}`}>
+    <div className="grid lg:grid-cols-[340px_1fr] gap-9">
+      <aside className="min-w-0 lg:sticky lg:top-6 lg:self-start">
+        <div className="border border-border bg-card rounded-md p-6"><h2 className="text-sm font-semibold">Job at a glance</h2><JobSpecs job={job} /><div className="border-t border-border mt-6 pt-5 text-primary text-sm flex gap-2 items-center"><LockKeyhole className="size-4" />{job.bid_count} of 5 bids placed</div></div>
+        {owner && job.bid_count > 0 && job.status === 'open' && <p className="text-xs text-muted-foreground mt-4">Editing is locked because bidding has started.</p>}
+      </aside>
+      <div className="min-w-0">
         <div className="flex flex-wrap gap-2 mb-4 text-xs text-primary"><span>{serviceLabel(job.service)}</span>·<span>{job.category}</span>·{!isDesignOnly(job) && <><span>{job.material}</span>·</>}<span className="capitalize">{job.status === 'awarded' ? 'Hired' : job.status}</span>{job.verified_only && <span className="text-success">· Verified Makers only</span>}</div>
         <h1 className="text-3xl font-semibold leading-tight">{job.title}</h1>
         <p className="text-sm text-muted-foreground mt-3 flex items-center gap-2">Posted by {firstName(job.owner_name)}{verifiedCustomer && <span className="text-success flex items-center gap-1"><BadgeCheck className="size-3.5" />Verified Customer</span>}</p>
@@ -111,16 +114,11 @@ export function JobDetail({ id, userId, cardSession, hireSession }: { id: string
           {show('edit')}
         </form>}
 
-      </div>
-
-      <aside className="min-w-0">
-        <div className="border border-border bg-card rounded-md p-6"><h2 className="text-sm font-semibold">Job at a glance</h2><JobSpecs job={job} /><div className="border-t border-border mt-6 pt-5 text-primary text-sm flex gap-2 items-center"><LockKeyhole className="size-4" />{job.bid_count} of 5 bids placed</div></div>
-        {owner && job.bid_count > 0 && job.status === 'open' && <p className="text-xs text-muted-foreground mt-4">Editing is locked because bidding has started.</p>}
         {!owner && !ownBid && job.status === 'open' && job.bid_count < 5 && (job.verified_only && !iAmVerified
-          ? <div className="mt-6 border border-border rounded-md p-5 text-sm"><p>This job is open to Verified Makers only.</p><Button asChild variant="outline" size="sm" className="mt-4"><Link to="/verify">Become a Verified Maker</Link></Button></div>
+          ? <div className="mt-8 border border-border rounded-md p-5 text-sm"><p>This job is open to Verified Makers only.</p><Button asChild variant="outline" size="sm" className="mt-4"><Link to="/verify">Become a Verified Maker</Link></Button></div>
           : <BidForm job={job} detail={detail} jobId={id} userId={userId} cardSession={cardSession} questions={detail.questions} verification={iAmVerified ? myVerification : null} onDone={() => void refetch()} />)}
         {!owner && job.status === 'open' && <ReportJob jobId={id} userId={userId} />}
-      </aside>
+      </div>
     </div>
 
     {(owner || ownBid) && <section className="border-t border-border mt-10 pt-8">
