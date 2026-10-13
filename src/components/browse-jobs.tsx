@@ -4,21 +4,22 @@ import { useSuspenseQuery, useQuery } from '@tanstack/react-query';
 import { Search, SlidersHorizontal, ArrowUpRight, Box, Clock3, MapPin, LockKeyhole, X, ChevronDown,  BadgeCheck, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { jobsQuery, foundingSpotsQuery, type PublicJob } from '@/lib/jobs.functions';
-import { categories, launchAreas, materialChoices, deliveries, neededBy, timeline, firstName } from '@/lib/printbids';
+import { allCategories, services, LEGACY_SERVICE, serviceLabel, isDesignOnly, launchAreas, materialChoices, deliveries, neededBy, timeline, firstName } from '@/lib/printbids';
 import { useAuth } from '@/lib/auth';
 import prints from '@/assets/prints.jpg';
 
 type O<T> = T | undefined;
-export type BrowseSearch = { q?: O<string>; category?: O<string>; location?: O<string>; material?: O<string>; file?: O<string>; delivery?: O<string>; needed?: O<string>; vcust?: O<boolean>; vmaker?: O<boolean>; sort?: O<string> };
+export type BrowseSearch = { q?: O<string>; category?: O<string>; location?: O<string>; material?: O<string>; file?: O<string>; service?: O<string>; delivery?: O<string>; needed?: O<string>; vcust?: O<boolean>; vmaker?: O<boolean>; sort?: O<string> };
 const str = (v: unknown) => (typeof v === 'string' && v.length <= 2000 ? v : undefined);
 export const validateBrowseSearch = (s: Record<string, unknown>): BrowseSearch => ({
-  q: str(s['q']), category: str(s['category']), location: str(s['location']), material: str(s['material']), file: str(s['file']),
+  q: str(s['q']), category: str(s['category']), location: str(s['location']), material: str(s['material']), file: str(s['file']), service: str(s['service']),
   delivery: str(s['delivery']), needed: str(s['needed']), vcust: s['vcust'] === true || s['vcust'] === 'true' ? true : undefined,
   vmaker: s['vmaker'] === true || s['vmaker'] === 'true' ? true : undefined, sort: s['sort'] === 'deadline' ? 'deadline' : undefined,
 });
-type GroupKey = 'category' | 'location' | 'material' | 'file' | 'delivery' | 'needed';
+type GroupKey = 'service' | 'category' | 'location' | 'material' | 'file' | 'delivery' | 'needed';
 const groups: { key: GroupKey; label: string; values: string[] }[] = [
-  { key: 'category', label: 'Category', values: categories },
+  { key: 'service', label: 'Service needed', values: [...services, LEGACY_SERVICE] },
+  { key: 'category', label: 'Category', values: allCategories },
   { key: 'location', label: 'Location', values: launchAreas },
   { key: 'material', label: 'Material', values: materialChoices },
   { key: 'file', label: '3D file', values: ['Has a 3D file', 'Needs design'] },
@@ -29,11 +30,12 @@ const split = (v?: string) => (v ? v.split('|').filter(Boolean) : []);
 function matches(job: PublicJob, key: GroupKey, values: string[]) {
   if (!values.length) return true;
   switch (key) {
+    case 'service': return values.includes(serviceLabel(job.service));
     case 'category': return values.includes(job.category);
     case 'location': return values.includes(job.region);
-    case 'material': return values.includes(job.material);
+    case 'material': return !isDesignOnly(job) && values.includes(job.material);
     case 'file': return values.includes(job.file_status === 'Yes' ? 'Has a 3D file' : 'Needs design');
-    case 'delivery': return job.delivery === 'Either' || values.includes(job.delivery);
+    case 'delivery': return !isDesignOnly(job) && (job.delivery === 'Either' || values.includes(job.delivery));
     case 'needed': return values.includes(timeline(job));
   }
 }
@@ -80,5 +82,5 @@ export function BrowseJobs() {
 }
 
 export function JobCard({ job }: { job: PublicJob }) {
-  return <Link to="/jobs/$id" params={{ id: job.id }} className="job-card rounded-lg overflow-hidden border border-border bg-card hover:border-primary/50"><div className="relative"><JobImage job={job} className="h-48" /><span className="absolute left-3 top-3 bg-background/85 backdrop-blur px-2.5 py-1.5 rounded text-[10px] text-success flex items-center gap-1.5"><span className="size-1 rounded-full bg-success" />OPEN FOR BIDS</span><span className="absolute right-3 top-3 bg-background/85 p-2 rounded"><ArrowUpRight className="size-3.5" /></span></div><div className="p-5"><div className="flex gap-2 mb-3 flex-wrap"><span className="text-[10px] text-primary bg-primary/10 rounded px-2 py-1">{job.category}</span><span className="text-[10px] text-sky bg-sky/10 rounded px-2 py-1">{job.material}</span>{job.verified_only && <span className="text-[10px] text-success bg-success/10 rounded px-2 py-1">Verified Makers only</span>}</div><h3 className="text-base font-semibold leading-6">{job.title}</h3><p className="text-xs text-muted-foreground leading-5 mt-2 min-h-10 line-clamp-2">{job.summary}</p><div className="grid grid-cols-2 gap-3 mt-5 text-[11px] text-muted-foreground"><span className="flex gap-2 items-center"><Box className="size-3.5" />{job.quantity} {job.quantity === 1 ? 'piece' : 'pieces'}</span><span className="flex gap-2 items-center"><Clock3 className="size-3.5" />{timeline(job)}</span><span className="flex gap-2 items-center col-span-2"><MapPin className="size-3.5" />{job.delivery} · {job.region}</span><span className="flex gap-2 items-center col-span-2"><User className="size-3.5" />{firstName(job.owner_name)}{job.verified_customer && <span className="text-success flex items-center gap-1"><BadgeCheck className="size-3" />Verified Customer</span>}</span></div><div className="flex justify-between items-center border-t border-border pt-4 mt-4"><span className="flex gap-2 text-[11px] text-muted-foreground items-center"><LockKeyhole className="size-3" />Sealed bidding</span><span className="text-xs"><span className="text-primary">{job.bid_count}</span><span className="text-muted-foreground"> / 5 bids placed</span></span></div></div></Link>;
+  return <Link to="/jobs/$id" params={{ id: job.id }} className="job-card rounded-lg overflow-hidden border border-border bg-card hover:border-primary/50"><div className="relative"><JobImage job={job} className="h-48" /><span className="absolute left-3 top-3 bg-background/85 backdrop-blur px-2.5 py-1.5 rounded text-[10px] text-success flex items-center gap-1.5"><span className="size-1 rounded-full bg-success" />OPEN FOR BIDS</span><span className="absolute right-3 top-3 bg-background/85 p-2 rounded"><ArrowUpRight className="size-3.5" /></span></div><div className="p-5"><div className="flex gap-2 mb-3 flex-wrap"><span className="text-[10px] text-primary bg-primary/10 rounded px-2 py-1">{job.category}</span><span className="text-[10px] text-foreground bg-muted rounded px-2 py-1">{serviceLabel(job.service)}</span>{!isDesignOnly(job) && <span className="text-[10px] text-sky bg-sky/10 rounded px-2 py-1">{job.material}</span>}{job.verified_only && <span className="text-[10px] text-success bg-success/10 rounded px-2 py-1">Verified Makers only</span>}</div><h3 className="text-base font-semibold leading-6">{job.title}</h3><p className="text-xs text-muted-foreground leading-5 mt-2 min-h-10 line-clamp-2">{job.summary}</p><div className="grid grid-cols-2 gap-3 mt-5 text-[11px] text-muted-foreground"><span className="flex gap-2 items-center"><Box className="size-3.5" />{isDesignOnly(job) ? 'Digital file' : `${job.quantity} ${job.quantity === 1 ? 'piece' : 'pieces'}`}</span><span className="flex gap-2 items-center"><Clock3 className="size-3.5" />{timeline(job)}</span><span className="flex gap-2 items-center col-span-2"><MapPin className="size-3.5" />{isDesignOnly(job) ? job.region : `${job.delivery} · ${job.region}`}</span><span className="flex gap-2 items-center col-span-2"><User className="size-3.5" />{firstName(job.owner_name)}{job.verified_customer && <span className="text-success flex items-center gap-1"><BadgeCheck className="size-3" />Verified Customer</span>}</span></div><div className="flex justify-between items-center border-t border-border pt-4 mt-4"><span className="flex gap-2 text-[11px] text-muted-foreground items-center"><LockKeyhole className="size-3" />Sealed bidding</span><span className="text-xs"><span className="text-primary">{job.bid_count}</span><span className="text-muted-foreground"> / 5 bids placed</span></span></div></div></Link>;
 }
