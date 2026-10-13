@@ -107,7 +107,7 @@ export function PostJob({ userId }: { userId: string }) {
                     dimensions: String(f.get('dimensions') ?? '').slice(0, 200),
                     file_status: fileStatus,
                     purpose: String(f.get('purpose')),
-                    finish: String(f.get('finish')),
+                    finish: String(f.get('finish') ?? '') || 'No preference',
                     color: pickColor ? String(f.get('color') ?? '').trim().slice(0, 80) || "Maker's choice" : "Maker's choice",
                     verified_only: f.get('verified_only') === 'on',
                     rights_confirmed: f.get('rights') === 'on',
@@ -221,8 +221,8 @@ export function PostJob({ userId }: { userId: string }) {
             </label>
             <label>
               Finish
-              <select name="finish" className="field" required value={finish} onChange={e => setFinish(e.target.value)}>
-                <option value="" disabled>Select your preferred finish</option>
+              <select name="finish" className="field" value={finish} onChange={e => setFinish(e.target.value)}>
+                <option value="">Select your preferred finish</option>
                 {finishes.map(v => (
                   <option key={v}>{v}</option>
                 ))}
