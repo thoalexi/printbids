@@ -154,7 +154,7 @@ function BidForm({ job, detail, jobId, userId, questions, verification, onDone, 
   const place = useServerFn(placeBid);
   const startCard = useServerFn(startBidCard);
   const [checkout, setCheckout] = useState(false);
-  const saved: Record<string, string> = (() => { try { return JSON.parse(sessionStorage.getItem(draftKey(jobId)) ?? '{}'); } catch { return {}; } })();
+  const saved: Record<string, string> = (() => { try { return JSON.parse(localStorage.getItem(draftKey(jobId)) ?? '{}'); } catch { return {}; } })();
   const [itemized, setItemized] = useState(saved['mode'] !== 'total');
   const [amounts, setAmounts] = useState<Record<string, string>>(saved);
   const [photos, setPhotos] = useState<File[]>([]);
@@ -168,7 +168,7 @@ function BidForm({ job, detail, jobId, userId, questions, verification, onDone, 
   const val = (k: string, fallback = '') => saved[k] ?? fallback;
   const bidTotal = itemized ? sum : Number(amounts['total']) || 0;
   if (placed) return <div role="status" className="mt-6 border border-primary/50 bg-primary/10 rounded-md p-6"><h2 className="text-lg font-semibold">Your bid is in!</h2><p className="text-sm text-muted-foreground mt-2">Your card is saved and nothing has been charged. We'll only charge the maker fee if the customer hires you.</p></div>;
-  return <form ref={formRef} className="mt-6 space-y-4" onChange={e => { const f = new FormData(e.currentTarget); const o: Record<string, string> = { mode: itemized ? 'items' : 'total' }; f.forEach((v, k) => { if (typeof v === 'string') o[k] = v; }); setAmounts(o); sessionStorage.setItem(draftKey(jobId), JSON.stringify(o)); }} onSubmit={async e => {
+  return <form ref={formRef} className="mt-6 space-y-4" onChange={e => { const f = new FormData(e.currentTarget); const o: Record<string, string> = { mode: itemized ? 'items' : 'total' }; f.forEach((v, k) => { if (typeof v === 'string') o[k] = v; }); setAmounts(o); localStorage.setItem(draftKey(jobId), JSON.stringify(o)); }} onSubmit={async e => {
     e.preventDefault(); setBusy(true); setError('');
     const f = new FormData(e.currentTarget);
     try {
@@ -176,14 +176,14 @@ function BidForm({ job, detail, jobId, userId, questions, verification, onDone, 
       if (links.some(v => { try { return new URL(v).protocol !== 'https:'; } catch { return true; } })) throw new Error('Links must be full https:// addresses.');
       if (photos.length > 6) throw new Error('Add up to 6 photos.');
       const photoKey = `${draftKey(jobId)}-photos`;
-      let paths: string[] = JSON.parse(sessionStorage.getItem(photoKey) ?? '[]');
-      if (photos.length) { paths = []; for (const file of photos) { if (!file.type.startsWith('image/') || file.size > 10 * 1024 * 1024) throw new Error('Photos must be images under 10 MB.'); const path = `${userId}/bids/${crypto.randomUUID()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`; const up = await supabase.storage.from('print-files').upload(path, file); if (up.error) throw up.error; paths.push(path); } sessionStorage.setItem(photoKey, JSON.stringify(paths)); }
+      let paths: string[] = JSON.parse(localStorage.getItem(photoKey) ?? '[]');
+      if (photos.length) { paths = []; for (const file of photos) { if (!file.type.startsWith('image/') || file.size > 10 * 1024 * 1024) throw new Error('Photos must be images under 10 MB.'); const path = `${userId}/bids/${crypto.randomUUID()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`; const up = await supabase.storage.from('print-files').upload(path, file); if (up.error) throw up.error; paths.push(path); } localStorage.setItem(photoKey, JSON.stringify(paths)); }
       const environment = getStripeEnvironment();
       if (!cardSession) { setCheckout(true); return; }
       const n = (k: string) => Number(f.get(k)) || 0;
       const r = await place({ data: { jobId, sessionId: cardSession, environment, itemized, total: itemized ? 0 : n('total'), materials: itemized ? n('materials') : 0, printing: itemized ? n('printing') : 0, post_processing: itemized ? n('post_processing') : 0, design: itemized ? n('design') : 0, shipping: itemized ? n('shipping') : 0, lead_days: n('lead_days'), technology: String(f.get('technology')), material: String(f.get('material') ?? '').slice(0, 80), offers: String(f.get('offers')) as 'Pickup' | 'Delivery' | 'Pickup or delivery', links, photos: paths.length ? paths : (verification?.photos ?? []).slice(0, 6), notes: String(f.get('notes') ?? ''), answers: questions.map((_, i) => String(f.get(`q${i}`))), contact_email: String(f.get('contact_email') ?? '').trim(), contact_phone: String(f.get('contact_phone') ?? '').trim() } });
       if ('error' in r) throw new Error(r.error);
-      sessionStorage.removeItem(draftKey(jobId)); sessionStorage.removeItem(photoKey);
+      localStorage.removeItem(draftKey(jobId)); localStorage.removeItem(photoKey);
       setPlaced(true); window.history.replaceState(null, '', `/jobs/${jobId}`); onDone();
     } catch (err) { setError(errText(err)); } finally { setBusy(false); }
   }}>
@@ -205,12 +205,13 @@ function BidForm({ job, detail, jobId, userId, questions, verification, onDone, 
     <label>Notes for the customer · optional<textarea className="field" name="notes" maxLength={3000} defaultValue={val('notes')} /></label>
     <label>Business email for the customer<input className="field" name="contact_email" type="email" required maxLength={320} defaultValue={val('contact_email')} /></label>
     <label>Phone · optional<input className="field" name="contact_phone" type="tel" maxLength={50} defaultValue={val('contact_phone')} /></label>
-    <p className="text-xs text-muted-foreground -mt-2">Shared with the customer only if they hire you.</p>
+    <p className="text-xs text-muted-foreground -mt-2">Visible to the customer only after they hire you and the hire is confirmed.</p>
     <div className="border border-border rounded-md p-4 text-xs text-muted-foreground space-y-1.5"><p className="text-foreground text-sm font-medium">About the fee</p><p>No charge now — you'll save a card with our payment partner.</p><p>If you're hired, we charge 5% of your bid (min $1){bidTotal > 0 ? <> — <span className="text-foreground">{money(feeCents(bidTotal) / 100)}</span> on this bid</> : null}. Founding Makers pay nothing on their first 5 hires.</p><p>If that charge fails, the hire doesn't go through. If you aren't hired, your card is released.</p></div>
     {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
     {cardSession && busy && <p role="status" className="text-xs text-primary">Card saved — placing your bid…</p>}
     {checkout && !cardSession ? <div className="space-y-3"><p className="text-sm">Enter your card to finish. Your bid is placed automatically once the card is saved.</p><EmbeddedPayment fetchClientSecret={async () => { const r = await startCard({ data: { jobId, environment: getStripeEnvironment(), returnUrl: `${window.location.origin}/jobs/${jobId}?card_session={CHECKOUT_SESSION_ID}` } }); if ('error' in r) throw new Error(r.error); return r.clientSecret; }} /></div>
-      : <Button className="w-full" disabled={busy}>{busy ? 'Placing bid…' : cardSession ? 'Try placing bid again' : 'Save card & place bid'}<Plus /></Button>}
+      : <Button className="w-full" disabled={busy}>{busy ? 'Placing bid…' : cardSession ? 'Place my bid' : 'Save card & place bid'}<Plus /></Button>}
+    {cardSession && error && <button type="button" className="text-xs text-primary underline" onClick={() => { window.location.href = `/jobs/${jobId}`; }}>Use a different card</button>}
   </form>;
 }
 
@@ -285,7 +286,7 @@ function HireSteps({ bid }: { bid: Bid }) {
   return <><DialogHeader><DialogTitle>Hire {firstName(bid.maker_name || 'Maker')}</DialogTitle><DialogDescription>Review, then pay your service fee to confirm.</DialogDescription></DialogHeader>
     <ol className="space-y-4 text-sm">
       <li><p className="text-xs text-primary">1 · Your maker</p><p className="mt-1">{firstName(bid.maker_name || 'Maker')} · {bid.lead_days} day turnaround · {bid.offers}</p></li>
-      <li><p className="text-xs text-primary">2 · What you pay</p><p className="mt-1">{money(total)} bid + {money(fee)} service fee = <span className="font-semibold">{money(total + fee)} total</span></p><p className="text-xs text-muted-foreground mt-1">You pay {money(fee)} now. You pay the maker {money(total)} directly at pickup or delivery.</p></li>
+      <li><p className="text-xs text-primary">2 · What you pay</p><dl className="mt-2 space-y-1.5"><div className="flex justify-between gap-4"><dt>Due today to PrintBids (5% service fee)</dt><dd className="font-semibold">{money(fee)}</dd></div><div className="flex justify-between gap-4"><dt className="text-muted-foreground">Paid directly to your maker at pickup or delivery</dt><dd>{money(total)}</dd></div><div className="flex justify-between gap-4 border-t border-border pt-1.5"><dt>Total project cost</dt><dd>{money(total + fee)}</dd></div></dl><p className="text-xs text-muted-foreground mt-2">PrintBids only charges the service fee. You pay your maker for the print directly when you pick it up or it's delivered.</p></li>
       <li><p className="text-xs text-primary">3 · Pay your service fee</p><p className="text-xs text-muted-foreground mt-1">Once it's confirmed, you'll see your maker's contact details right away.</p></li>
     </ol></>;
 }
