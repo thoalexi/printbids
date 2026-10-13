@@ -50,6 +50,13 @@
       "when": 1791917719685,
       "tag": "0006_bid_contacts",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1791918337519,
+      "tag": "0007_job_service_type",
+      "breakpoints": true
     }
   ]
 }

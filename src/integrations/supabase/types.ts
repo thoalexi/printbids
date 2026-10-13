@@ -416,6 +416,7 @@ export type Database = {
           quantity: number
           region: string
           rights_confirmed: boolean
+          service: string | null
           status: string
           summary: string
           technology: string
@@ -444,6 +445,7 @@ export type Database = {
           quantity: number
           region?: string
           rights_confirmed?: boolean
+          service?: string | null
           status?: string
           summary?: string
           technology?: string
@@ -472,6 +474,7 @@ export type Database = {
           quantity?: number
           region?: string
           rights_confirmed?: boolean
+          service?: string | null
           status?: string
           summary?: string
           technology?: string
@@ -536,6 +539,7 @@ export type Database = {
           printer_specs: string
           review_notes: string
           service_area: string
+          services: string[]
           shop_name: string
           status: string
           user_id: string
@@ -550,6 +554,7 @@ export type Database = {
           printer_specs: string
           review_notes?: string
           service_area?: string
+          services?: string[]
           shop_name?: string
           status?: string
           user_id: string
@@ -564,6 +569,7 @@ export type Database = {
           printer_specs?: string
           review_notes?: string
           service_area?: string
+          services?: string[]
           shop_name?: string
           status?: string
           user_id?: string
